@@ -1,0 +1,7 @@
+**Q11: Why Apache Spark? What problem it solves?**
+
+**A:** Apache Spark is a **unified computing engine** for **large-scale data processing** on computer clusters.
+
+**Problems it solves:**
+- **Hadoop's disk I/O** - MapReduce writes to disk after every step (slow)
+- **Batch-only processing** - no real-time/streaming
