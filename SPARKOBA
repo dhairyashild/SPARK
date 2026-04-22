@@ -162,24 +162,239 @@ df = (spark.read
     .load("c:\\user\\download_data.csv"))  # 5. PATH
 ```
 
-**CHAINED = CLEAN CODE**
+## Mode Options---
+ Fail fest**  --fail execution if malformed record in dataset.
+Dropmal formed**  -- Drop the corrupted record
+Permissive**  -- Default → set null value to all corrupted fields
+
+**CODE**
+```python
+.option("mode", "FAILFAST")    # Stop + Error
+.option("mode", "DROPMALFORMED") # Skip bad rows  
+.option("mode", "PERMISSIVE")   # NULL bad fields (DEFAULT)
+```
+
+## CSV Format (YOUR Notes Exactly)
+
+CSV  == Comma separated value
+
+id,name,age,salary,address,nominee
+1,Manish,26,10000,Mumbai,Parent
+2,Pritam,22,20000,Delhi,Wife
+------------------------
+
+PRACTICAL
+
+1- DATABRICS LOG IN  ---> DATA  ----> UPLAOD FILE
+2- CREATE  --- > NOTEBOOK ---> CONNECT ---> MYCLUSTER(GRREN DOT) ----> 
+3- COMMAND ON NOTEBOOK
+
+spark
+
+## Flight DataFrame (YOUR Code Exactly)
+
+flight_df_header = (spark.read.format("csv")
+    .option("header", "true")                    # this gives header to o/p of command -->  flight_df_header.show(5)
+    .option("inferSchema", "true")               # if false int treat as string in above command o/p
+    .option("mode", "FAILFAST")
+    .load("/FileStore/tables/flight_data.csv"))
+
+flight_df_header.show(5)
+```
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+spark architecture | Lec-5
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+schema in spark | Lec-4
+1- STRUCTTYPE & STRUCTFIELD
+2- DDL
 
+1-------------
+**StructType** which defines our structure
+**StructField** defines each column
+
+**CODE**
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+                                                                                    # Schema Definition
+schema = StructType([
+    StructField("id", IntegerType(), False),    # name, type, nullable
+    StructField("name", StringType(), True),
+    StructField("age", IntegerType(), True)
+])
+
+# Create DataFrame
+data = [(1, "Manish", 26), (2, "Vikash", 30), (3, "Pritam", 22)]
+df = spark.createDataFrame(data, schema)
+
+df.show()
+--------------------
+2--------DDL
+ddl_schema = "id INTEGER, name STRING, age INT"
+---------------------
+
+## Complete Code WITH Schema
+
+# 1. DEFINE SCHEMA (DDL STRING)
+my_schema = "YEAR INT, MONTH INT, DAY INT, DEP_TIME STRING, ARR_TIME STRING, TAIL_NUMBER STRING"
+
+
+# 2. READ CSV WITH SCHEMA
+flight_df = (spark.read.format("csv")
+    .option("header", "false")        # NO header row
+    .option("inferSchema", "false")   # NO auto-type detection  
+    .schema(my_schema)                # Use our schema
+    .option("mode", "PERMISSIVE")     # NULL bad fields
+    .load("/FileStore/tables/flight_data.csv"))
+
+flight_df.show(5)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+Handling corrupted records in spark | PySpark | Databricks
 
 
+
+# INTERVIEW: HANDLING CORRUPTED RECORDS
+
+## 1. WHEN IS IT A CORRUPTED RECORD?
+- **Schema Mismatch**: Data type doesn't match (e.g., "ABC" in an Integer column).
+- **Malformed Rows**: Extra commas in CSV or missing closing braces in JSON.
+- **Null Violations**: Required non-nullable fields are empty.
+
+## 2. THE 3 READ MODES (Behavior)
+- **PERMISSIVE (Default)**: Spark inserts `NULL` for the corrupted field and continues.
+- **DROPMALFORMED**: Spark ignores the entire row. It never enters the DataFrame.
+- **FAILFAST**: Spark stops the job immediately and throws an error (Best for data quality).
+
+## 3: Production - 1 Option for Bad Records?
+
+employee_df = (spark.read.format("csv")
+    .option("header", "true")
+    .option("inferSchema", "true")
+    .option("mode", "PERMISSIVE")
+    .schema(emp_schema)
+    .option("columnNameOfCorruptRecord", "_bad_data")  # BAD DATA SHOW COLUMN
+    .option("badRecordsPath", "/FileStore/tables/bad_records")
+    .load("/FileStore/tables/employee_file.csv"))
+
+employee_df.show(truncate=False)
+---------------------------------
+
+%fs
+
+ls /FileStore/tables/bad_records/20260329T033518/bad_records/
+---------------------------------
+## Reading Bad Records (YOUR Code)
+
+# 1. Read saved bad records (JSON format)
+bad_data_df = spark.read.format("json").load("/FileStore/tables/bad_records/20260329T033518/bad_records/")
+
+# 2. Show bad records
+bad_data_df.show()
+```
+
+**3. Schema of bad_data_df:**
+
+## 4. STORAGE & LATER ACCESS
+- **Where**: Filter bad records into a separate DataFrame and save them to a "Reject" folder (e.g., `s3://bucket/bad_records/`).
+- **Access**: Later, a Data Analyst or Engineer reads that "Reject" folder to fix the source data or investigate the root cause.
+
+## CODE EXAMPLE
+```python
+schema = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True),
+    StructField("_bad_data", StringType(), True) # Special column
+])
+
+df = spark.read.format("json") \
+    .option("columnNameOfCorruptRecord", "_bad_data") \
+    .schema(schema) \
+    .load("path")
+
+# Separate and Store
+bad_df = df.filter(df._bad_data.isNotNull())
+bad_df.write.parquet("s3://rejected_data/date=2026-04-22/")
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+transformation and action in spark
 
+
+# PYSPARK TRANSFORMATIONS: SHORT & SIMPLE
+
+## 1. NARROW DEPENDENCY (The Fast Way)
+- **Concept**: Data stays in its own partition. No network travel.
+- **Key**: 1 Parent Partition -> 1 Child Partition.
+- **Examples**: 
+    * `filter()`
+    * `select()`
+    * `union()`
+    * `drop()`
+
+
+
+## 2. WIDE DEPENDENCY (The Expensive Way)
+- **Concept**: Data must move between executors to find "matching" keys.
+- **Trigger**: Causes a **SHUFFLE**.
+- **Key**: Many Parent Partitions -> Many Child Partitions.
+- **Examples**: 
+    * `groupBy()`
+    * `join()`
+    * `orderBy()`
+    * `distinct()`
+    * `repartition()`
+
+## 3. COMPARISON AT A GLANCE
+| Feature | Narrow | Wide |
+| :--- | :--- | :--- |
+| **Shuffle** | No | Yes (High Network I/O) |
+| **Stage** | Same Stage | Starts a New Stage |
+| **Speed** | Very Fast | Slower |
+
+-------
+
+# TRANSFORMATIONS & ACTIONS: INTERVIEW ESSENTIALS
+
+## 1. TRANSFORMATIONS (The Plan)
+- Definition: Instructions to modify data.
+- Lazy Evaluation: Spark doesn't run them immediately; it just builds a DAG (logical plan).
+- Types:
+    - Narrow: Data stays in its own partition (No Shuffle).
+      - Examples: filter, select, union.
+    - Wide: Data moves across the network (Triggers Shuffle).
+      - Examples: groupBy, join, orderBy.
+
+
+
+## 2. ACTIONS (The Trigger)
+- Definition: Operations that force Spark to execute transformations and return results.
+- Key: Every Action triggers a Spark Job.
+- Examples: show(), count(), collect(), save(), write().
+
+## 3. SPARK HIERARCHY (How Jobs are Born)
+1. Job: Created whenever an Action is called.
+2. Stage: A Job is split into Stages at every Shuffle boundary (Wide Transformation).
+3. Task: The smallest unit of work. One Task runs on one Partition of data.
+
+
+
+## 4. WHAT HAPPENS DURING A JOIN/GROUPBY?
+- Spark performs a Shuffle. 
+- It redistributes data so that all rows with the same key end up on the same executor node.
+- This is the most expensive operation in Data Engineering due to network I/O.
+
+## CODE SUMMARY
+```python
+# Lazy Plan (No execution)
+df_new = df.filter(df.age > 20).groupBy("city") 
+
+# Execution starts (1 Job created)
+df_new.count().show()
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
