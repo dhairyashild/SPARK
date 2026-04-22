@@ -49,6 +49,9 @@ Hadoop vs Spark | Lec-3 | In depth explanation
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+spark ecosystem | Lec - 4
+
+
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                            SPARK ECOSYSTEM                                       │
@@ -96,6 +99,70 @@ Hadoop vs Spark | Lec-3 | In depth explanation
 └─────────────────────────────────────────────────────────────────────────────────┘
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+Read data in spark | Lec-3 | Read modes in spark
+
+
+
+# PYSPARK DATAFRAME READER STRUCTURE
+
+## 1. THE CORE SYNTAX
+spark.read \
+  .format("file_type") \
+  .option("key", "value") \
+  .schema(defined_schema) \
+  .load("path/to/data")
+
+## PySpark: Reading Data (YOUR Notes Format)
+
+**format** 
+Date file format
+**5**
+CSV, JSON, JDBC/ODBC, Table, parquet
+
+**optional**
+option inferschema, mode, header
+
+**optional**
+Schema manual schema you can pass
+
+**optional**
+Load
+Path where our data is
+
+**CODE EXAMPLES**
+```python
+# YOUR 5 FORMATS
+spark.read.csv("path")           # CSV
+spark.read.json("path")          # JSON  
+spark.read.jdbc(url, table)      # JDBC
+spark.sql("SELECT * FROM table") # Table
+spark.read.parquet("path")       # Parquet
+
+# OPTIONS
+.option("inferSchema", "true")
+.option("header", "true") 
+.option("mode", "PERMISSIVE")
+
+# MANUAL SCHEMA
+schema = StructType([...])
+spark.read.schema(schema).csv("path")
+```
+
+
+
+## DataFrame Reader API (YOUR Notes)
+
+**Dataframe Reader API--  how to access? → **spark.read**
+
+df = (spark.read
+    .format("CSV")           # 1. Format
+    .option("header", "true")     # 2. Header row
+    .option("inferSchema", "true") # 3. Auto types
+    .option("mode", "FAILFAST")   # 4. Error on bad data
+    .load("c:\\user\\download_data.csv"))  # 5. PATH
+```
+
+**CHAINED = CLEAN CODE**
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
