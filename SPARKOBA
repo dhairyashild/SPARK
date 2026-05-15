@@ -1,6 +1,9 @@
 **Q11: Why Apache Spark? What problem it solves?**
 
-**A:** Apache Spark is a **unified computing engine** for **large-scale data processing** on computer clusters.
+**A:** Apache Spark is a **unified computing engine** for **large-scale data processing** on 
+computer clusters.
+- Spark can connect with different data sources HDFS, JDBC/ODBC, Azure storage etc.
+Spark works with most all data storage systems.
 
 **Problems it solves:**
 - **Hadoop's disk I/O** - MapReduce writes to disk after every step (slow)
@@ -12,7 +15,7 @@
 Why Apache spark | Lec-2
 
 
- BIG DATA PROB =3V
+-- BIG DATA PROB =3V
 VELOCITY
 VARIETY
 VOLUME
@@ -114,24 +117,14 @@ spark.read \
 
 ## PySpark: Reading Data (YOUR Notes Format)
 
-**format** 
-Date file format
-**5**
-CSV, JSON, JDBC/ODBC, Table, parquet
-
-**optional**
-option inferschema, mode, header
-
-**optional**
-Schema manual schema you can pass
-
-**optional**
-Load
-Path where our data is
+**format(5)=CSV, JSON, JDBC/ODBC, Table, parquet
+**option(optional)= inferschema, mode, header
+**Schema(optional)= manual schema you can pass
+**Load(optional)=Path where our data is residing
 
 **CODE EXAMPLES**
-```python
-# YOUR 5 FORMATS
+
+# **format(5)
 spark.read.csv("path")           # CSV
 spark.read.json("path")          # JSON  
 spark.read.jdbc(url, table)      # JDBC
@@ -174,9 +167,7 @@ Permissive**  -- Default → set null value to all corrupted fields
 .option("mode", "PERMISSIVE")   # NULL bad fields (DEFAULT)
 ```
 
-## CSV Format (YOUR Notes Exactly)
-
-CSV  == Comma separated value
+## CSV  == Comma separated value
 
 id,name,age,salary,address,nominee
 1,Manish,26,10000,Mumbai,Parent
@@ -207,7 +198,18 @@ flight_df_header.show(5)
 -------------------------------------------------------------------------------------------------------------------------------------------------
 spark architecture | Lec-5
 
+MASTER = RESOURCE MANAGER - INSTALLED WITH YARN
+NODA MANAGER(SLAVES) - CREATES CONTAINER IN NODE MANAGER OF SIZE(CPU+RAM) NEED FOR SPARK JOB
 
+CONTAINER = APPLICATION MASTER
+
+PYTHON WRAPPER
+|
+JAVA WRAPPER( APP DRIVER) CONVERT PYTHON CODE IN JAVA
+|
+SPARK CORE
+|
+ASK RESOURCE MANAGER WITH REQUIRED CONTANER ON WORKER NODE
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
 schema in spark | Lec-4
@@ -215,12 +217,11 @@ schema in spark | Lec-4
 2- DDL
 
 1-------------
-**StructType** which defines our structure
+**StructType** which defines our structure of DF
 **StructField** defines each column
 
 **CODE**
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType
-                                                                                    # Schema Definition
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType                                                                              # Schema Definition
 schema = StructType([
     StructField("id", IntegerType(), False),    # name, type, nullable
     StructField("name", StringType(), True),
