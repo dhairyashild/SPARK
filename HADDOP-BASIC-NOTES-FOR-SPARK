@@ -1,0 +1,93 @@
+# Final Hadoop Notes – Data Engineer (8 YOE), Short & Must‑Have
+
+1. Core components
+- HDFS: Distributed storage (NameNode + DataNodes).
+- YARN: Resource management (ResourceManager + NodeManager + ApplicationMaster).
+- MapReduce: Batch processing engine (Mapper → Shuffle → Reducer).
+
+2. HDFS architecture
+- NameNode:
+  - Stores metadata (file paths, block IDs, locations).
+  - No real data blocks; runs in RAM (fsimage + edits log).
+  - HA: 1 active + 1 standby; no SPOF.
+- Secondary NameNode:
+  - Not a backup; only merges and checkpoints fsimage + edits.
+- DataNode:
+  - Stores actual data blocks (128 MB default).
+  - Sends heartbeat every 3s and block report every 10s.
+
+3. Replication and rack awareness
+- Default replication = 3.
+- Topology:
+  1st replica → same rack as client.
+  2nd replica → different rack.
+  3rd replica → same rack as 2nd, but different node.
+- Read: From nearest replica (rack‑local > same rack > remote).
+- Write: Pipelined (DN1 → DN2 → DN3) for fast, parallel writes.
+
+4. MapReduce step‑by‑step
+- InputSplit (logical, ≈ block size) → 1 Mapper per split.
+- Map phase:
+  - <K1, V1> → <K2, V2> (e.g., (word, 1)).
+  - Output partitioned and sorted in memory (100 MB buffer; spills at 80%).
+- Combiner:
+  - Mini‑reducer on Mapper node (if commutative/associative, e.g., sum).
+  - Reduces network shuffle.
+- Shuffle & sort:
+  - Mapper spills to disk, then Reducers fetch via HTTP (5 threads by default).
+  - Sorts and merges all Mappers’ outputs per key.
+- Reduce phase:
+  - <K2, List<V2>> → <K3, V3> (final aggregated result).
+  - Writes output back to HDFS.
+
+5. YARN resource management
+- ResourceManager:
+  - Schedules containers and manages apps.
+- NodeManager:
+  - Per‑node; manages containers (CPU + memory).
+- ApplicationMaster:
+  - One per job; negotiates containers with RM.
+- Container = CPU core + memory (e.g., 3 GB default).
+- Queues: default, root (multi‑tenant clusters).
+
+6. Key config & commands (must remember)
+- Memory settings:
+  - mapreduce.task.io.sort.mb = 100
+  - mapreduce.map.sort.spill.percent = 0.80
+  - mapreduce.reduce.shuffle.parallelcopies = 5
+- HDFS commands:
+  - hdfs dfs -put, -get, -ls -h -R, -fsck for blocks/locations, dfsadmin -report.
+- YARN commands:
+  - hadoop jar ..., yarn application -kill, yarn logs for troubleshooting.
+
+7. Node naming and paths
+- HDFS:
+  - dfs.namenode.name.dir = /data/hadoop/namenode
+  - dfs.datanode.data.dir = /data/hadoop/datanode
+- YARN:
+  - yarn.resourcemanager.hostname = rm-01.cluster.com
+  - yarn.nodemanager.local-dirs = /data/hadoop/nm-local
+- Block locations:
+  - API: FileSystem.getBlockLocations → returns host:port + rack for each block.
+
+8. Why Spark over MapReduce?
+- MapReduce writes to disk after every stage → slow.
+- Spark keeps data in memory (RDD/DataFrame) → typically 10–100× faster.
+- MapReduce: 2‑stage only; Spark: DAG with many stages.
+- Spark reuses JVM; no per‑task JVM startup overhead.
+- Spark still often uses HDFS as storage layer.
+
+9. Common 8‑YOE‑level questions to know
+- What if NameNode fails without HA? → Whole cluster down.
+- Replication vs erasure coding: 3× replication = 200% overhead.
+- Small file problem: 150 bytes per file in NameNode memory → use HAR, HBase, or parquet concatenation.
+- Speculative execution: Slow tasks rerun on another node.
+- Rack awareness failure: Reads fall back to replicas on other racks.
+- mapreduce.job.reduces vs mapreduce.job.partitions:
+  - Reduces = number of Reducer tasks.
+  - Partitions = how keys are distributed to Reducers.
+
+10. Tiny code gist (word count)
+- Mapper: Tokenizes line → emits (word, 1).
+- Combiner & Reducer: Same class sums values for each word.
+- Driver sets Mapper, Combiner, Reducer, numReduceTasks, input/output paths, and starts job.
