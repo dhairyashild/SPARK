@@ -1,0 +1,151 @@
+STEP 1: Hadoop Core Components
+- Storage System: HDFS (Hadoop Distributed File System) - stores data across cluster nodes
+- Resource Manager: YARN centralizes cluster resource allocation & scheduling for multiple apps
+STEP 2: MapReduce Workflow Components
+- Mapper: Parallel task that processes input splits and emits key-value pairs from raw data
+- Combiner: Optional "mini-reducer" on mapper node that pre-aggregates data to reduce network traffic
+- Shuffle: Phase that moves/sorts mapper output by key and sends it to appropriate reducer nodes
+- Reducer: Aggregates/combines all values for each key from mapper output to produce final result
+- Replication: HDFS copies data blocks (default 3x) across nodes for fault tolerance
+
+STEP 3: SPARK
+Q1 Apache Spark-- distributed in-memory computing engine for large-scale data processing across clusters.
+
+Spark Driver (Master) → Manages everything, creates partitions
+Spark Executor (Worker) → Each partition processes alone on executor
+  
+-DATA COMES IN:--------100 Zomato servers receiving 1 crore orders per day (10GB data)
+  
+-Spark Driver (master node) does the partitioning based on input file size/splits 
+  (default 128MB per partition) or based on user-specified numPartitions.
+  -PARTITION = Data split into chunks across servers (1 crore orders → 200 partitions sample example)
+
+"NARROW = Each partition is processed independently on ONE executor, NO data shuffle between partitions → FAST"  
+    (map, filter, union)
+
+"WIDE = Partitions exchange data ACROSS executors via network (group by, join) → SLOW due to SHUFFLE"
+  (group, join, sort, distinct)
+  
+"ACTION = Spark waits to run ALL transformations until an ACTION is called (count, show, collect) 
+  → This is LAZY EVALUATION"  
+  
+- RDD: Resilient Distributed Dataset - 
+  immutable, fault-tolerant collection of objects partitioned across cluster
+
+Resilient   = Can recover from failures (recomputes lost partitions)
+Immutable   = Cannot change once created (new RDD on transformation)
+Fault-tolerant = Rebuilds lost data using lineage (DAG)
+Partitioned = Split into chunks across cluster
+  
+STEP 4: Key Differences
+# RDD vs DATAFRAME - Complete Table with Simple Explanation
+
+====================================================================================================
+
+┌──────────────┬─────────────────────────────────┬──────────────────────────────────────────────────┐
+│ FEATURE      │ RDD (SLOW/OLD)                  │ DATAFRAME (FAST/MODERN)                          │
+├──────────────┼─────────────────────────────────┼──────────────────────────────────────────────────┤
+│ Optimization │ NONE                            │ CATALYST OPTIMIZER                               │
+│              │ Executes code exactly as written│ Automatically reorders query for best performance│
+│              │ Example: filter after join      │ Example: filter BEFORE join (predicate pushdown) │
+├──────────────┼─────────────────────────────────┼──────────────────────────────────────────────────┤
+│ Memory       │ JVM HEAP (high GC)              │ TUNGSTEN ENGINE (off-heap, no GC)                │
+│              │ Stores data as Java objects     │ Stores data as compact binary bytes              │
+│              │ Frequent garbage collection     │ No GC pauses, 2-3x less memory                   │
+├──────────────┼─────────────────────────────────┼──────────────────────────────────────────────────┤
+│ Python Speed │ 10-50x SLOWER than Scala        │ EQUAL to Scala speed                             │
+│              │ Serializes between Python & JVM │ Tungsten bypasses JVM completely                 │
+│              │ Every operation = serialize     │ Direct binary execution                           │
+└──────────────┴─────────────────────────────────┴──────────────────────────────────────────────────┘
+
+  # RDD vs DATASET - Best 3 Simple Differences
+┌─────┬──────────────┬─────────────────────────────┬──────────────────────────────┐
+│ #   │ FEATURE      │ RDD                         │ DATASET                      │
+├─────┼──────────────┼─────────────────────────────┼──────────────────────────────┤
+│ 1   │ Python Support│ YES                         │ NO (Scala/Java only)         │
+├─────┼──────────────┼─────────────────────────────┼──────────────────────────────┤
+│ 2   │ Type Safety  │ NO (runtime errors)         │ YES (compile-time safety)    │
+├─────┼──────────────┼─────────────────────────────┼──────────────────────────────┤
+│ 3   │ Performance  │ Slow (JVM serialization)    │ Fast (Encoders + Tungsten)   │
+└─────┴──────────────┴─────────────────────────────┴──────────────────────────────┘
+====================================================================================================
+
+【WHAT OPTIMIZER DOES - Example】
+
+Query: Filter(age > 18) → Join(orders) → Select(name)
+
+RDD (No Optimization):
+  1. Join ALL data (1 billion records)
+  2. Filter age > 18
+  3. Select name
+  Result: Huge join first → VERY SLOW
+
+DataFrame (Catalyst Optimizer):
+  1. Filter age > 18 FIRST (reduces data 90%)
+  2. Join only filtered data (100 million records)
+  3. Select name
+  Result: 10x faster automatically
+
+ RDD vs Dataset: RDD = JVM objects, no compile-time safety; Dataset = type-safe, combines RDD + DataFrame benefits
+
+TRNASFORMATION= Lazy operation that creates NEW RDD/DataFrame from existing one (no execution)
+
+
+【3 KEY POINTS】
+1. LAZY - Doesn't run immediately
+2. IMMUTABLE - Returns new, original unchanged  
+3. NO RESULT - Returns RDD, not actual data
+【ULTRA SHORT - One line each】
+NARROW = NO shuffle, each works alone → FAST
+WIDE = YES shuffle, data moves → SLOW  
+ACTION = TRIGGERS execution → without it nothing runs
+
+====================================================================================================
+------------------------------------------------------------  18 MAY
+Q1 Apache Spark-- distributed in-memory computing engine for large-scale data processing across clusters.
+
+Q2 ---  SPARK VS MAPREDUCE
+  
+┌──────────────────┬──────────────────┬──────────────────┐
+│ Parameter        │ Disk-Based       │ In-Memory        │
+├──────────────────┼──────────────────┼──────────────────┤
+│ Storage          │ Disk (EBS/HDFS)  │ RAM              │
+├──────────────────┼──────────────────┼──────────────────┤
+│ Speed            │ Slow             │ 10-100x Faster   │
+├──────────────────┼──────────────────┼──────────────────┤
+│ I/O Cost         │ High             │ Low              │
+├──────────────────┼──────────────────┼──────────────────┤
+
+  Spark processes data in-memory (100× faster for iterative/real-time workloads), 
+  while MapReduce writes intermediate results to disk (slower, disk-based batch processing).
+    
+"Disk-Based (100GB): 
+ "Step1(Map) → Write 50GB to EBS (5min)"
+ "Step2(Shuffle) → Write 25GB to EBS (3min)"
+ "Step3(Reduce) → Write Final (2min) = 10min total, 3 disk writes = SLOW"
+
+"In-Memory (100GB):  
+  Step1→Keep 50GB in RAM(2min) → Step2→Process in RAM(0.5min) → Step3→Write Final(0.5min) = 3min"
+
+
+Q3--    PANDAS VS SPARK :---
+┌──────────────────┬─────────────────────┬─────────────────────┐
+│ # │ Difference   │ Pandas              │ Spark               │
+├───┼──────────────┼─────────────────────┼─────────────────────┤
+│ 1 │ Hardware     │ Single machine      │ Cluster (multiple)  │
+│ 2 │ Data Limit   │ RAM size (8-128GB)  │ Unlimited (TB/PB)   │
+│ 3 │ Speed (big)  │ Crashes / Impossible│ Fast (distributed)  │
+│ 4 │ Execution    │ Eager (runs NOW)    │ Lazy (plans first)  │
+└───┴──────────────┴─────────────────────┴─────────────────────┘
+
+\\\\\\\\\\\\\\\\\\\\\\\
+
+
+
+
+
+
+
+
+
+  
