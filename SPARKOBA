@@ -6,7 +6,7 @@ Spark works with most all data storage systems.
 
 **Problems it solves:**
 - **Hadoop's disk I/O** - MapReduce writes to disk after every step (slow)
-- **Batch-only processing** - no real-time/streaming
+- **Batch-only processing** - no real-time/streamingTRANS
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -326,7 +326,7 @@ transformation and action in spark
 
 
 # PYSPARK TRANSFORMATIONS: SHORT & SIMPLE
-
+Types of Transformations① Narrow dependencyTransformation that doesn't require data movement between partitions. ex- filter, select, union, map etc.② wide dependencyTransformation that requires data movement across partitions (shuffling). ex- Join, groupby, *If you want to continue with this Spark topic, let me know if you want to see:
 ## 1. NARROW DEPENDENCY (The Fast Way)
 - **Concept**: Data stays in its own partition. No network travel.
 - **Key**: 1 Parent Partition -> 1 Child Partition.
