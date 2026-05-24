@@ -364,12 +364,66 @@ Partitioned = Split into chunks across cluster
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+how to read json file in pyspark
 
 
+
+1. What is json data and how to read it in spark?
+ANS: JSON = text-based key-value semi-structured data. Read: spark.read.json("path")
+MUST-KNOW: Use schema enforcement for performance; avoid inferSchema on large files.
+
+2. What if I have 3 keys in all line and 4 keys in one line?
+ANS: Spark adds 4th key as new column; missing keys become null.
+MUST-KNOW: This is schema evolution; use .option("mergeSchema", "true") when writing.
+
+3. What multiline and line-delimited json?
+ANS: Multiline = one JSON across lines (multiLine=true). Line-delimited = one JSON per line (default).
+MUST-KNOW: Line-delimited supports compression (gzip) and splitting; multiline needs whole file read.
+
+4. Which one works faster - multiline or line-delimited?
+ANS: Line-delimited (parallel split across files)
+MUST-KNOW: Multiline kills parallelism because executor must read entire file; use only for nested/pretty-printed JSON.
+
+5. How to convert nested json into spark dataframe?
+ANS: Use from_json with schema OR .select("col.*") to flatten.
+MUST-KNOW: explode() for arrays; to_json() for reverse; prefer explicit schema for nested structs.
+
+6. What will happen if I have corrupted json file?
+ANS: Spark puts bad records in _corrupt_record column when mode=PERMISSIVE.
+MUST-KNOW: Use FAILFAST mode for quality checks; DROPMALFORMED to skip bad rows; handle via .filter("_corrupt_record is null")
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+spark sql engine in spark | Lec-8
 
 
+
+Q1: Catalyst optimizer | Spark SQL engine?
+ANS: Catalyst = rule-based query optimizer. Spark SQL engine = compiles SQL/DF to RDD bytecode.
+MUST-KNOW: Uses pattern matching & Scala features; whole-stage codegen via Tungsten.
+
+Q2: Why Analysis exception error?
+ANS: Table/column/function name not found in Catalog during analysis phase (syntax is fine, resolution fails).
+MUST-KNOW: Parser passes, Analyzer fails; check metastore or aliases.
+
+Q3: What is catalog?
+ANS: Metadata repository storing databases, tables, views, functions, schemas.
+MUST-KNOW: Can be in-memory or external (Hive Metastore, AWS Glue). Session-scoped or persistent.
+
+Q4: Physical planning / Spark Plan?
+ANS: Converts optimized logical plan to executable physical plan with specific join strategies, shuffles, partitions.
+MUST-KNOW: Uses cost model (stats) to pick best plan; final output = RDD of bytecode.
+
+Q5: Is Spark SQL engine a compiler?
+ANS: Yes. Compiles declarative SQL/DF → Java bytecode via Catalyst + Tungsten stages.
+MUST-KNOW: Not just interpreter; does whole-stage codegen to avoid virtual function calls.
+
+Q6: Phases to convert code → Java bytecode?
+ANS: 4 phases: 1) Parse → 2) Analyze (with Catalog) → 3) Logical Optimize → 4) Physical Plan + CodeGen
+
+FLOW:
+SQL/DF → Parse (Unresolved LP) → Analyze (Catalog) → Optimized LP → Physical Plan (Cost Model) → Tungsten CodeGen → Java Bytecode on executors
+
+KEYWORDS: Predicate pushdown, projection pruning, cost-based optimization, whole-stage codegen, unresolved vs resolved plan
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
 
