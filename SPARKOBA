@@ -325,80 +325,42 @@ bad_df.write.parquet("s3://rejected_data/date=2026-04-22/")
 transformation and action in spark
 
 
-# PYSPARK TRANSFORMATIONS: SHORT & SIMPLE
-Types of Transformations① Narrow dependencyTransformation that doesn't require data movement between partitions. ex- filter, select, union, map etc.② wide dependencyTransformation that requires data movement across partitions (shuffling). ex- Join, groupby, *If you want to continue with this Spark topic, let me know if you want to see:
-## 1. NARROW DEPENDENCY (The Fast Way)
-- **Concept**: Data stays in its own partition. No network travel.
-- **Key**: 1 Parent Partition -> 1 Child Partition.
-- **Examples**: 
-    * `filter()`
-    * `select()`
-    * `union()`
-    * `drop()`
+Apache Spark-- 
+               distributed in-memory computing engine for large-scale data processing across clusters.
+-Spark Driver (Master) → Manages everything, creates partitions
+-Spark Executor (Worker) → Each partition processes alone on executor
+  
+-DATA COMES IN:--------100 Zomato servers receiving 1 crore orders per day (10GB data)
+  
+-Spark Driver (master node) does the partitioning based on input file size/splits 
+  (default 128MB per partition) or based on user-specified numPartitions.
+-PARTITION = Data split into chunks across servers (1 crore orders → 200 partitions sample example)
 
 
+- TRANSFORMATIONS (The Plan) -  Instructions to modify data.
+1=NARROW = 
+Each partition is processed independently on ONE executor, NO data shuffle between partitions → FAST"  
+    (map, filter, union)
 
-## 2. WIDE DEPENDENCY (The Expensive Way)
-- **Concept**: Data must move between executors to find "matching" keys.
-- **Trigger**: Causes a **SHUFFLE**.
-- **Key**: Many Parent Partitions -> Many Child Partitions.
-- **Examples**: 
-    * `groupBy()`
-    * `join()`
-    * `orderBy()`
-    * `distinct()`
-    * `repartition()`
+2=WIDE = 
+Partitions exchange data ACROSS executors via network (group by, join) → SLOW due to SHUFFLE"
+  (group, join, sort, distinct)
+  
+3) ACTION = Spark waits to run ALL transformations until an ACTION is called (count, show, collect) 
+  → This is LAZY EVALUATION"  
+  
+4) RDD: Resilient Distributed Dataset - 
+  immutable, fault-tolerant collection of objects partitioned across cluster
 
-## 3. COMPARISON AT A GLANCE
-| Feature | Narrow | Wide |
-| :--- | :--- | :--- |
-| **Shuffle** | No | Yes (High Network I/O) |
-| **Stage** | Same Stage | Starts a New Stage |
-| **Speed** | Very Fast | Slower |
-
--------
-
-# TRANSFORMATIONS & ACTIONS: INTERVIEW ESSENTIALS
-
-## 1. TRANSFORMATIONS (The Plan)
-- Definition: Instructions to modify data.
-- Lazy Evaluation: Spark doesn't run them immediately; it just builds a DAG (logical plan).
-- Types:
-    - Narrow: Data stays in its own partition (No Shuffle).
-      - Examples: filter, select, union.
-    - Wide: Data moves across the network (Triggers Shuffle).
-      - Examples: groupBy, join, orderBy.
-
-
-
-## 2. ACTIONS (The Trigger)
-- Definition: Operations that force Spark to execute transformations and return results.
-- Key: Every Action triggers a Spark Job.
-- Examples: show(), count(), collect(), save(), write().
+Resilient   = Can recover from failures (recomputes lost partitions)
+Immutable   = Cannot change once created (new RDD on transformation)
+Fault-tolerant = Rebuilds lost data using lineage (DAG)
+Partitioned = Split into chunks across cluster
 
 ## 3. SPARK HIERARCHY (How Jobs are Born)
 1. Job: Created whenever an Action is called.
 2. Stage: A Job is split into Stages at every Shuffle boundary (Wide Transformation).
 3. Task: The smallest unit of work. One Task runs on one Partition of data.
-
-
-
-## 4. WHAT HAPPENS DURING A JOIN/GROUPBY?
-- Spark performs a Shuffle. 
-- It redistributes data so that all rows with the same key end up on the same executor node.
-- This is the most expensive operation in Data Engineering due to network I/O.
-
-## CODE SUMMARY
-```python
-# Lazy Plan (No execution)
-df_new = df.filter(df.age > 20).groupBy("city") 
-
-# Execution starts (1 Job created)
-df_new.count().show()
-
--------------------------------------------------------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------------------------------------------------------
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
