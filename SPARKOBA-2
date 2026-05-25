@@ -64,8 +64,75 @@ df.write.partitionBy("date").parquet("path/")
 
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
+Partitioning and bucketing in Spark | Lec-9 | Practical video
++ gpt interiw q added
 
 
+
+# Partitioning & Bucketing - Complete Interview Answers (1 Block)
+
+```python
+# ============================================
+# Q1: What is partitioning in Spark?
+# ============================================
+# Physical folder separation by column value
+df.write.partitionBy("year", "month").parquet("/orders")
+# Output: /orders/year=2024/month=01/file.parquet
+
+# ============================================
+# Q2: What is bucketing in Spark?
+# ============================================
+# Fixed N files, data distributed by hash(column) % N
+df.write.bucketBy(100, "user_id").saveAsTable("orders")
+# user_id=123 → bucket 23 (hash(123) % 100), same ID always same bucket
+
+# ============================================
+# Q3: Why need these two?
+# ============================================
+# Partitioning → Partition pruning (skip folders at query time)
+# Bucketing → Bucketed joins (NO SHUFFLE), sampling, pre-shuffling
+
+# ============================================
+# Q4: When to use Partitioning?
+# ============================================
+# ✓ Low cardinality (<10k unique values), common WHERE filter, time series
+# ✗ High cardinality → folder explosion (NameNode pressure)
+df.write.partitionBy("country", "year")  # Good (200 countries × 10 years)
+
+# ============================================
+# Q5: When to use Bucketing?
+# ============================================
+# ✓ High cardinality (millions), frequent JOINs, large tables (100GB+)
+df.write.bucketBy(256, "user_id").saveAsTable("large_users")
+
+# ============================================
+# Q6: Partition + Bucket together?
+# ============================================
+df.write.partitionBy("year").bucketBy(128, "user_id").saveAsTable("tbl")
+# Partition first (coarse), then bucket inside each partition
+
+# ============================================
+# Q7: Optimal number of buckets?
+# ============================================
+# Rule: 2-4× number of partitions in cluster
+# 100 executors → 200-400 buckets (not too many small files)
+
+# ============================================
+# Q8: Partition vs Bucket performance difference?
+# ============================================
+# Partition: WHERE year=2024 → reads 1 folder (100x faster)
+# Bucket: JOIN on user_id → 0 shuffle (10x faster)
+
+# ============================================
+# Q9: Problems with too many partitions?
+# ============================================
+# 10,000+ partitions → Slow metadata ops, small files, NameNode memory full
+
+# ============================================
+# Q10: Can bucket column be different from partition column?
+# ============================================
+# Yes. Partition on date (filter), bucket on user_id (join)
+df.write.partitionBy("date").bucketBy(256, "user_id")
 
 
 ----------------------------------------------------------------------------------------------------------
