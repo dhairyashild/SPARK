@@ -138,63 +138,477 @@ df.write.partitionBy("date").bucketBy(256, "user_id")
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
 
+########################################
+
+Spark Job, Stages, Tasks | Lec-11
+
+GPT NOTES ONLY READ 
+=================================================================
+SPARK JOB, STAGES, TASKS - INTERVIEW CRAM (Q&A Format)
+=================================================================
+
+Q1: What is a Spark Job?
+A: A parallel computation triggered by an action (count(), show(), write()).
+   - 1 action = 1 Job
+
+Q2: What is a Stage?
+A: A set of tasks that can run together without shuffling.
+   - Stages are separated by shuffles (groupBy, join, repartition)
+
+Q3: What is a Task?
+A: Smallest unit of work. 1 task = 1 partition = 1 core execution.
+
+Q4: What is the minimum count for each?
+A: - Minimum 1 Job per action
+   - Minimum 1 Stage per Job
+   - Minimum 1 Task per Stage
+
+Q5: How are they related?
+A: Job → Stage(s) → Task(s)
+   Example: df.read().filter().groupBy().count().show()
+   - Job: 1 (triggered by show())
+   - Stages: 2 (1 for filter, 1 for groupBy + count with shuffle)
+   - Tasks: N (based on partitions, e.g., 200 partitions = 200 tasks)
+
+Q6: How to identify shuffle boundaries?
+A: Wide transformations create new stages:
+   - groupByKey(), reduceByKey(), join(), distinct(), repartition(), coalesce()
+   - Narrow transformations stay in same stage: filter(), map(), select()
+
+Q7: How to check Jobs, Stages, Tasks in UI?
+A: Spark UI → Jobs tab → Click job → Shows:
+   - Stage details (DAG visualization)
+   - Task details (duration, success/failure, locality)
+
+Q8: What happens if a task fails?
+A: Spark retries tasks (default 4 retries). If still fails → Job fails.
+
+Q9: How to control number of tasks?
+A: By controlling partitions:
+   - df.repartition(100) → 100 tasks in that stage
+   - df.coalesce(10) → 10 tasks (no shuffle)
+   - Default: 200 partitions for shuffle operations
+
+Q10: Common interview scenario:
+    "I have 100GB data, 10 executor cores. How many tasks?"
+A: Depends on partition count:
+    - If 200 partitions → 200 tasks (each core processes multiple tasks)
+    - Each task processes 1 partition (typically 128MB-256MB)
+    - 100GB / 128MB ≈ 800 optimal partitions
+
+Q11: Can 1 stage have tasks from multiple Jobs?
+A: No. Stages belong to single Job. But stages can be shared across Jobs
+    if same RDD/DataFrame is cached.
+
+Q12: What is task serialization?
+A: Task code + data sent to executor. Large serialization = slow.
+    - Avoid broadcasting large variables inside tasks
+    - Use broadcast variables explicitly
+
+Q13: How to debug slow tasks?
+A: Spark UI → Stage → Task table → Sort by duration:
+    - Data skew → Some tasks taking longer
+    - Check input size per task
+    - Check GC time
+    - Check shuffle read/write
+
+Q14: What is speculative execution?
+A: Spark reruns slow tasks on other executors. Takes first completed result.
+    - Enabled by: spark.speculation=true
+    - Helps when some executors are slow
+
+Q15: Formula to remember:
+A: Job = Action
+   Stage = Shuffle boundary
+   Task = Partition = Core
+   
+   Total Tasks in Job = Sum of partitions across all stages
+   Minimum Tasks = 1 (1 partition, 1 stage, 1 job)
+
+
+
+
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+how to create dataframe in spark | Lec-10
+
+copy data in notepad ----> ctrl+h --- replace pipe with blank so u get data 
+
+ALT == [ress karun thev () all data la lavta yeto.
+
+data = [
+(1 , Raghav)
+(2, ram)
+]
+
+scehma = [id= num , name= string)
+
+df = spark.createDataframe(data=data, schema= schema)
+
+df.show
+
+######### GPT
+=================================================================
+CREATE DATAFRAME - INTERVIEW SUMMARY (30 Sec Answers)
+=================================================================
+
+Q1: How to create DataFrame in Spark?
+A: 4 ways - from list/tuple, from CSV/JSON/Parquet, from RDD, from JDBC
+
+Q2: Syntax?
+A: spark.createDataFrame(data=data, schema=schema)
+
+Q3: What if no schema provided?
+A: Spark infers automatically but slower. ALWAYS provide schema for production.
+
+Q4: How to handle pipe-delimited data from Notepad?
+A: df = spark.read.option("delimiter", "|").csv("file.txt")
+
+Q5: createDataFrame() vs toDF()?
+A: createDataFrame from SparkSession, toDF converts RDD to DataFrame
+
+=================================================================
+REAL-TIME INTERVIEW QUESTIONS
+=================================================================
+
+Q: You get 10GB pipe-delimited file from legacy system. How do you create DataFrame?
+
+A: 
+df = spark.read \
+    .option("delimiter", "|") \
+    .option("header", "true") \
+    .schema(custom_schema) \
+    .csv("s3://path/file.txt")
+# Why? Pipe common in mainframe data. Always provide schema for 10GB file.
+
+Q: Daily CSV arrives with 200 columns but you need only 5. What's your approach?
+
+A: 
+schema = StructType([StructField("id", IntegerType()), StructField("name", StringType())])
+df = spark.read.schema(schema).csv("file.csv")
+# Spark reads only those 5 columns - faster, less memory
+
+Q: Your DataFrame creation is slow. Why?
+
+A: Top reasons:
+1. inferSchema=true → Disable, provide explicit schema
+2. No header → Use header=true or provide schema  
+3. Small files → Use coalesce() before creating DF
+
+Q: How to create empty DataFrame with 100 columns for testing?
+
+A: 
+schema = StructType([StructField(f"col_{i}", StringType()) for i in range(100)])
+empty_df = spark.createDataFrame([], schema)
+
+Q: Client sends data in Notepad with mixed delimiter (| and ,). How to handle?
+
+A: 
+# Clean in Python first
+lines = open("file.txt").read().replace("|", ",").split("\n")
+data = [tuple(line.split(",")) for line in lines if line]
+df = spark.createDataFrame(data, schema)
+
+=================================================================
+QUICK FORMULA (Memorize)
+=================================================================
+CSV  → spark.read.csv().option("header","true")
+JSON → spark.read.json()
+Parquet → spark.read.parquet()
+List → spark.createDataFrame(list, schema)
+Pipe → spark.read.option("delimiter","|").csv()
+
+RULE: Provide schema + Use appropriate read format + Handle delimiters
+
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+dataframe transformations in spark | Lec-11
+
+
+df.coloumn ----  give colomn name only
+
+df.printSchema()    ---   gives all-schema(column+ nullable)
+
+column = set  of expression on values
+
+#########     .select   --- to select column in 4 ways
+df.select("id")
+2-- df.select(col(id))
+3--df.select(df["id"])
+4--df.select(df.address)
+
+df.select("id").show()-- give that column with values
+||       col(id), col(age).show-- give multiple column with values
+||       (col( id  + 5))   .show()-- if u want to action on that column 
+                                  -- as id + 5 without col() not works
+||       (expr(id+5)).show        -- also do above task
+||       (expr("id" as emp_id))   -- rename colomn name
+||       (expr(concat("name"+"address")  -- combines 2 coluns names and values in 1 colomn
+################################################
+=================================================================
+REAL-TIME INTERVIEW QUESTIONS
+=================================================================
+
+Q: You have 200 columns. User wants 5 columns with transformations. Best approach?
+
+A:
+df.select(
+    col("id"),
+    col("name"),
+    (col("salary") * 1.1).alias("hiked_salary"),
+    expr("upper(name) as name_upper"),
+    concat(col("first_name"), lit(" "), col("last_name")).alias("full_name")
+)
+# Why? Single select with all transformations - minimal passes over data
+
+Q: col("id") + 5 gives error. Why? How to fix?
+
+A: Error because missing col() function.
+Fix: from pyspark.sql.functions import col
+     df.select(col("id") + 5)
+
+Q: What's faster - expr() or col()?
+
+A: Both same performance. expr() is more flexible for complex expressions.
+col() is type-safe. Use col() for simple, expr() for complex like "case when"
+
+Q: How to select all columns except 2?
+
+A: df.select([col for col in df.columns if col not in ["password", "ssn"]])
+
+Q: Real scenario - Customer wants full name from first and last name with title?
+
+A:
+df.select(
+    expr("concat('Mr./Ms. ', first_name, ' ', last_name) as full_name"),
+    col("customer_id")
+)
+
+Q: How to conditionally transform in select?
+
+A:
+df.select(
+    expr("""
+        case when salary > 100000 then salary * 1.05
+             else salary * 1.10
+        end as adjusted_salary
+    """)
+)
+
+=================================================================
+QUICK REFERENCE (Memorize)
+=================================================================
+SELECT COLUMN:           df.select("id") | col("id") | df["id"] | df.id
+OPERATION:               col("id") + 5 | expr("id + 5")
+RENAME:                  col("id").alias("emp_id") | expr("id as emp_id")
+CONCAT:                  expr("concat(name, ' ', address)")
+MULTIPLE COLUMNS:        df.select("id", "name", "age")
+ALL COLUMNS:             df.select("*")
+COLUMN LIST:             df.columns
+FULL SCHEMA:             df.printSchema()
+
+CRITICAL: Always import - from pyspark.sql.functions import col, expr, concat, lit
+CRITICAL: col() mandatory for operations - col("id") + 5 (NOT "id" + 5)
+
 
 
 
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
 
+spark session vs spark context | Lec-10
+
+
+
+=================================================================
+SPARK SESSION vs SPARK CONTEXT - INTERVIEW SUMMARY
+=================================================================
+
+Q1: What is SparkContext?
+A: Entry point for Spark Core (RDD, accumulators, broadcast variables)
+   - Created first in Spark 1.x
+   - One per JVM
+
+Q2: What is SparkSession?
+A: Unified entry point (Spark 2.0+)
+   - Wraps SparkContext + SQLContext + HiveContext
+   - One per application
+
+Q3: Key difference?
+A: SparkSession includes everything. SparkContext is RDD-only.
+   SparkSession can do SQL, streaming, DataFrames. SparkContext cannot.
+
+Q4: Can we use both?
+A: spark.sparkContext gives SparkContext from SparkSession
+
+Q5: Which to use for new projects?
+A: ONLY SparkSession. SparkContext is legacy now.
+
+=================================================================
+REAL-TIME INTERVIEW QUESTIONS
+=================================================================
+
+Q: Your company has Spark 1.6 code. Moving to Spark 3.x. What changes?
+
+A: Replace:
+   # Old Spark 1.6
+   conf = SparkConf().setAppName("app")
+   sc = SparkContext(conf=conf)
+   sqlContext = SQLContext(sc)
+   hiveContext = HiveContext(sc)
+   
+   # New Spark 3.x - ONE line
+   spark = SparkSession.builder.appName("app").enableHiveSupport().getOrCreate()
+
+Q: You see code using both sc and spark. Is this valid?
+
+A: Yes. spark = SparkSession.builder.getOrCreate()
+   sc = spark.sparkContext  # Valid - gives SparkContext
+   # Use spark for DataFrames, sc for RDD operations
+
+Q: How to create SparkSession with custom settings?
+
+A: 
+spark = SparkSession.builder \
+    .appName("MyApp") \
+    .master("yarn") \
+    .config("spark.sql.shuffle.partitions", "200") \
+    .config("spark.executor.memory", "4g") \
+    .enableHiveSupport() \
+    .getOrCreate()
+
+Q: What happens if you call getOrCreate() twice?
+
+A: Returns same SparkSession. Singleton pattern. No duplicate.
+
+Q: Real scenario - Legacy job fails because SparkContext stopped. Why?
+
+A: Spark 2.x+ - stopping SparkContext stops SparkSession.
+   Fix: Use spark.stop() instead of sc.stop()
+   
+Q: How to check if SparkContext is active?
+
+A: spark.sparkContext.isStopped  # Returns boolean
+
+Q: What configuration is specific to SparkContext vs SparkSession?
+
+A: SparkContext configs: executor memory, cores, serializer
+   SparkSession configs: shuffle partitions, broadcast threshold, dynamic allocation
+
+=================================================================
+QUICK COMPARISON TABLE (Memorize)
+=================================================================
+Feature              | SparkContext | SparkSession
+---------------------|--------------|-------------
+Introduced in        | Spark 1.x    | Spark 2.0+
+RDD Support          | YES          | YES (via sc)
+DataFrame/Dataset    | NO           | YES
+Spark SQL            | NO           | YES
+Hive Support         | NO           | YES (enableHiveSupport)
+Streaming            | NO           | YES
+Catalyst Optimizer   | NO           | YES
+Tungsten Engine      | NO           | YES
+
+=================================================================
+CODE TEMPLATE (Interview Ready)
+=================================================================
+from pyspark.sql import SparkSession
+
+# MODERN WAY (Spark 2.0+)
+spark = SparkSession.builder \
+    .appName("my_app") \
+    .master("local[*]") \
+    .config("spark.sql.adaptive.enabled", "true") \
+    .getOrCreate()
+
+# Get SparkContext if needed
+sc = spark.sparkContext
+
+# Read data
+df = spark.read.csv("data.csv")
+rdd = sc.textFile("data.txt")
+
+# Clean up
+spark.stop()
+
+=================================================================
+COMMON INTERVIEW TRICK QUESTION
+=================================================================
+Q: "I created SparkContext, then SparkSession. Is this correct?"
+
+A: WRONG. SparkSession creates its own SparkContext.
+   Creating SparkContext before SparkSession causes error.
+   
+   # WRONG ❌
+   sc = SparkContext()
+   spark = SparkSession.builder.getOrCreate()  # ERROR!
+   
+   # RIGHT ✅
+   spark = SparkSession.builder.getOrCreate()
+   sc = spark.sparkContext
+
+Q: "How many SparkSessions can run in one JVM?"
+
+A: One active SparkSession per JVM. 
+   Multiple sessions possible if previous stopped.
+   spark.newSession() creates isolated session for configs.
+
+RULE TO REMEMBER: Spark 2.0+ → USE ONLY SparkSession
+                   SparkContext available INSIDE SparkSession
+                   Never create SparkContext separately
 
 
 
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
 
+dataframe transformations in spark | Lec-12
 
 
 
-----------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------
+df.select(col("id").alias("emp_id")).show()  -- rename here like above but with alis not expr
+
+df.where(col("salary")>150000)).show()   -- where = filter
+df.filter(col("salary")>150000)).show()   -- where = filter
+df.filter(col(("salary")>150000)) and (col("age")<18)).show()   -- where = filter
+             (                  ) and (             )        -- keep in round bracket extra if we want use and
 
 
-
-
-----------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------
-
-
-
-
-----------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------
 
 
 
 
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
+union vs unionAll | Lec-13 | spark interview questions
 
 
 
+=================================================================
+UNION vs UNION ALL - INTERVIEW CRAM
+=================================================================
 
-----------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------
+Q1: Difference between union() and unionAll()?
+A: In Spark - BOTH do same thing (UNION ALL - no duplicate removal)
+   - union() = unionAll() = keeps all rows including duplicates
+   - Traditional SQL: UNION removes dupes, UNION ALL keeps dupes
+   - Spark: unionByName() available for column matching
 
+Q2: What happens to number of rows?
+A: union() - adds rows. No removal.
+   df1.count() = 100, df2.count() = 50 → union = 150 rows
 
+Q3: What if columns are in different order?
+A: union() - column POSITION matters, names don't matter
+   unionByName() - column NAMES matter, position doesn't matter
 
+Q4: What if column names are different?
+A: union() - works if data types match (ignores names)
+   unionByName() - fails, needs same column names
 
-----------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------
-
-
-
-
-----------------------------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------------------------
-
-
-
-
+Q5: What is unionByName()?
+A: Matches by column name instead of position.
+   Reorders columns automatically to align names
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
 
