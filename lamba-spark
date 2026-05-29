@@ -30,3 +30,38 @@ df.select("col1","col2").show(5, truncate=False)
 # 6. COMMON AFTER LOAD
 df.dtypes           # Prints (col_name, data_type) pairs
 df.na.drop().count() # Count after dropping nulls
+
+# Type cast
+df = df.withColumn("Item_weight", col("Item_weight").cast("string"))
+
+#########################  SORT / ORDER BY NOTES
+
+# SORT REAL-TIME COMMANDS - SHORT SUMMARY
+
+# IMPORT
+from pyspark.sql.functions import asc, desc
+
+# SINGLE COLUMN
+df.sort("col")                    # Ascending
+df.sort(desc("col"))              # Descending
+
+# MULTI COLUMN
+df.sort(asc("col1"), desc("col2")) # col1 A→Z, then col2 Z→A within each group
+
+# ALTERNATIVE (0=False/desc, 1=True/asc)
+df.sort(["col1","col2"], ascending=[0,1])  # col1 desc, col2 asc
+
+# DISPLAY VS SAVE
+df.sort(desc("date")).display()           # View only
+df_sorted = df.sort(desc("date"))         # Save sorted
+
+# ORDERBY (same as sort)
+df.orderBy(asc("name"), desc("age"))
+
+# VERIFY
+df_sorted.select("col").show(10)
+
+# BEST PRACTICE: Use asc()/desc() - readable, explicit, less error-prone
+# WHY: [0,1] syntax requires remembering 0=desc,1=asc and matching list lengths
+
+################################
