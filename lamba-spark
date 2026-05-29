@@ -64,4 +64,56 @@ df_sorted.select("col").show(10)
 # BEST PRACTICE: Use asc()/desc() - readable, explicit, less error-prone
 # WHY: [0,1] syntax requires remembering 0=desc,1=asc and matching list lengths
 
-################################
+################################  LIMIT
+# LIMIT COMMANDS - PRODUCTION USE
+
+# 1. PREVIEW
+df.limit(10).display()  # # Quick check data before processing
+
+# 2. DEBUGGING
+df.filter(col("status")=="error").limit(5).show()  # # Inspect few bad records
+
+
+##########################  DROP 
+
+# DROP COLUMN COMMANDS - PRODUCTION USE
+
+# 1. DROP SINGLE COLUMN
+df = df.drop("column_name")  # # Remove unwanted column permanently
+
+# 2. DROP MULTIPLE COLUMNS
+df = df.drop("col1", "col2", "col3")  # # Remove multiple columns at once
+
+# 3. DROP USING LIST
+cols_to_drop = ["temp_col", "debug_col"]
+df = df.drop(*cols_to_drop)  # # Unpack list to drop dynamic columns
+
+# 6. VERIFY DROP
+print(df.columns)  # # Check remaining columns after drop
+
+
+
+####################  DROP DUPLICATE ROW  / DROP ON 1 COL DUPLICATES VALUES
+
+
+# DROP DUPLICATE COMMANDS - PRODUCTION USE
+
+# 1. DROP COMPLETE DUPLICATE ROWS
+df = df.dropDuplicates()  # # Remove rows where all columns are identical
+
+# 2. DROP DUPLICATES BASED ON SPECIFIC COLUMNS
+df = df.dropDuplicates(["id"])  # # Keep first occurrence, remove others with same id
+
+# 3. DROP DUPLICATES WITH MULTIPLE COLUMNS
+df = df.dropDuplicates(["customer_id", "product_id"])  # # Unique combo per customer-product
+
+# 5. CHECK DUPLICATES BEFORE DROPPING
+dupe_count = df.count() - df.dropDuplicates(["id"]).count()  # # Count how many duplicates exist
+
+# 6. VERIFY AFTER DROP
+assert df.count() == df.dropDuplicates(["id"]).count(), "Duplicates still exist"  # # Validate deduplication
+
+
+
+
+
