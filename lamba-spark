@@ -1,0 +1,32 @@
+# STEPWISE SPARK START COMMANDS (MUST KNOW)
+
+# 1. START SPARK SESSION
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName("my_app").getOrCreate()
+# Command: Initializes Spark
+
+# 2. LOAD DATA
+df = spark.read.csv("path/file.csv", header=True, inferSchema=True)
+df = spark.read.parquet("path/file.parquet")
+df = spark.read.json("path/file.json")
+# Command: Reads data into DataFrame
+
+# 3. EXPLORE DATA
+df.show(5)           # Shows first 5 rows
+df.display()         # Databricks rich display
+df.printSchema()     # Shows column names + data types
+df.columns           # Lists all column names
+df.count()           # Returns row count
+df.describe().show() # Statistical summary
+
+# 4. CHECK NULLS
+df.filter(col("col_name").isNull()).count()
+df.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in df.columns]).show()
+
+# 5. VIEW DATA
+df.limit(10).show()
+df.select("col1","col2").show(5, truncate=False)
+
+# 6. COMMON AFTER LOAD
+df.dtypes           # Prints (col_name, data_type) pairs
+df.na.drop().count() # Count after dropping nulls
