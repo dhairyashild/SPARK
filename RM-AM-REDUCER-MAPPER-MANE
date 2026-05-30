@@ -1,0 +1,256 @@
+================================================================================
+          YARN & MAPREDUCE STEPWISE CORE COMPONENTS (SHORTEST PRODUCTION FLOW)
+================================================================================
+
+【RESOURCE MANAGER (RM)】 == Master daemon
+- Master daemon managing cluster-wide resources
+
+【SCHEDULER (under RM)】
+- Allocate containers
+
+【APPLICATION MANAGER (under RM)】
+- Accept job submission and create FIRST container for ApplicationMaster
+
+【APPLICATION MASTER (AM)】
+- Runs INSIDE AM Container (1 GB RAM, 1 core typical)
+- Negotiate with Scheduler
+
+【NODE MANAGER (NM)】
+- Launch containers on assigned node and monitor their resource usage
+- Send heartbeat
+
+【CONTAINER】
+- Isolated fraction of physical resources (RAM + CPU) allocated on a node where actual tasks (Mapper/Reducer) run
+
+【COMBINER】 == (Runs right after Mapper)
+- Runs locally inside the Mapper container as a mini-reducer
+- Reduces network overhead by aggregating data before it leaves the local node
+- Required to prevent network bottlenecks during heavy data processing
+
+【SHUFFLE & SORT】 == (Runs between Mapper and Reducer)
+- Transfers intermediate key-value data across the network from Mappers to Reducers
+- Sorts and groups data by key so that each Reducer gets a clean, unified set of inputs
+- Required because Reducers cannot aggregate data until all identical keys are in one place
+
+【REPLICATION】 == (Runs during Final Output Save)
+- Duplicates final output blocks across multiple physical machines (default factor = 3)
+- Places copies across different racks using Rack Awareness Policy
+- Required for high availability and fault tolerance so data is never lost if a node crashes
+
+
+
+#########################################################################################################
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                           YARN ARCHITECTURE - COMPLETE NOTES                      ║
+║                          FOR DATA ENGINEER INTERVIEW (PRODUCTION EXAMPLE)         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        SECTION 1: CLIENT EXAMPLE                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【CLIENT - SINGLE JOB EXAMPLE】
+
+Client gives:
+- 100 GB log file stored in HDFS at /data/input/
+- Resource request: 4 GB RAM + 2 cores per task container
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                   SECTION 2: CONTAINER CALCULATION (STEPWISE)                    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【CONTAINER CALCULATION PER NODE - STEPWISE】
+
+Step 1: Know your node hardware
+- Total RAM per node = 64 GB
+- Total CPU cores per node = 16 cores
+
+Step 2: Know your container requirement
+- RAM per task container = 4 GB
+- CPU cores per task container = 2 cores
+
+Step 3: Calculate by RAM
+- 64 GB ÷ 4 GB = 16 containers (based on RAM)
+
+Step 4: Calculate by CPU
+- 16 cores ÷ 2 cores = 8 containers (based on CPU)
+
+Step 5: Take the SMALLER number
+- MIN(16, 8) = 8 containers max per node
+
+Step 6: Calculate for entire cluster
+- 5 nodes × 8 containers per node = 40 containers max in parallel * 128 MB
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    SECTION 3: ALLOCATE CONTAINERS - ACTUAL NUMBERS               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+ALLOCATE CONTAINERS -  40 containers max in parallel
+1. AM Container  (created first):
+   - Resource = 1 GB RAM + 1 core
+   - Location = ANY 1 NODES - IT FALIS RM CREATE IT ON ANOTHER NODE ONLY 1 AT TIME
+  
+
+2. Task Containers (created by AM negotiating with Scheduler):
+   - Resource = 4 GB RAM + 2 cores each
+   - Total needed = 800 containers (for 800 blocks)
+   - But only 40 can run in parallel
+   - Scheduler allocates per wave:
+
+Wave 1:
+- Node-1: 8 containers (32 GB RAM + 16 cores used, 32 GB + 0 cores left)
+- Node-2: 8 containers (32 GB RAM + 16 cores used, 32 GB + 0 cores left)
+- Node-3: 8 containers (32 GB RAM + 16 cores used, 32 GB + 0 cores left) [AM container also here but small]
+- Node-4: 8 containers (32 GB RAM + 16 cores used, 32 GB + 0 cores left)
+- Node-5: 8 containers (32 GB RAM + 16 cores used, 32 GB + 0 cores left)
+Total in Wave 1 = 40 containers processing 40 blocks (5.12 GB)
+
+Wave 2 to Wave 20: Same allocation repeats until all 800 blocks done
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    SECTION 4: WHO DECIDES CONTAINER SIZE (MARATHI)               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【4 GB + 2 कोण ठरवते? - शॉर्टेस्ट】
+
+Admin ठरवतो (yarn-site.xml मध्ये)  -Mostly gives = Cluster Admin
+Client request करतो  - Can override = Client ( -D parameters ने )
+Default: 1 GB + 1 core
+Scheduler = देईल तेवढे देतो
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         SECTION 5: YARN COMPONENTS                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【RESOURCE MANAGER (RM)】 == Master daemon
+- Master daemon managing cluster-wide resources and NodeManagers
+- Receive job requests and delegate to Scheduler + Application Manager
+
+    【SCHEDULER (under RM)】
+    - Allocate containers based on available cluster capacity
+    - Give containers in waves, NOT all at once
+
+    【APPLICATION MANAGER (under RM)】
+    - Accept job submission and create FIRST container for ApplicationMaster
+    - Restart ApplicationMaster if it fails during execution
+
+【APPLICATION MASTER (AM)】
+- Runs INSIDE AM Container (1 GB RAM, 1 core typical)
+- Negotiate with Scheduler for ALL task containers (mappers/reducers)
+- Coordinate task execution, handle failures, and report job status
+
+【NODE MANAGER (NM)】
+- Launch containers on assigned node and monitor their resource usage
+- Send heartbeat with node status to Resource Manager every few seconds
+
+【CONTAINER - TWO TYPES】
+
+    【TYPE 1: AM CONTAINER (Only 1 per job)】
+    - Created FIRST by RM's Application Manager (1 GB RAM, 1 core typical)
+    - Runs Application Master process only, NO data processing
+
+    【TYPE 2: TASK CONTAINER (Many per job)】
+    - Created LATER by AM negotiating with Scheduler (4 GB RAM, 2 cores typical)
+    - Runs actual Mapper or Reducer task, does data work
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    SECTION 6: 40 CONTAINERS vs 800 BLOCKS                        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【40 CONTAINERS vs 800 BLOCKS - SIMPLE EXAMPLE】
+
+Analogy:
+- Blocks = 800 plates of food to serve (each plate = 128 MB)
+- Containers = 40 waiters available at same time
+- Each waiter takes 1 plate (128 MB) → After finishing, takes next plate
+- Each wave processes 5.12 GB (40 plates)
+- Takes 20 waves to serve all 800 plates (102.4 GB)
+
+【KEY FORMULA - INTERVIEW MUST KNOW】
+Total blocks = 800
+Parallel containers = 40
+Data per wave = 40 × 128 MB = 5.12 GB
+Total waves = 800 ÷ 40 = 20 sequential waves
+Each wave processes 40 blocks IN PARALLEL
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│              SECTION 7: STEPWISE TASK DESIGN (START TO END)                      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【DESIGN - DIVIDED BY TASKS WITH START AND END】
+
+╔══════════════════════════════════════════════════════════════╗
+║                    TASK 1: CLIENT SUBMITS JOB                ║
+╚══════════════════════════════════════════════════════════════╝
+
+START: Client runs command: yarn jar WordCount.jar /data/input /data/output
+ACTION: Client uploads job config + JAR + input path to Resource Manager
+END: RM receives job request and validates resources
+
+╔══════════════════════════════════════════════════════════════╗
+║         TASK 2: RESOURCE MANAGER - APPLICATION MANAGER       ║
+╚══════════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════════╗
+║         TASK 3: APPLICATION MASTER REGISTERS WITH RM         ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════╗
+║      TASK 4: AM CALCULATES AND REQUESTS TASK CONTAINERS      ║
+╚══════════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════════╗
+║          TASK 5: SCHEDULER ALLOCATES WAVE 1 (40 containers)  ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════╗
+║     TASK 6: AM LAUNCHES MAPPER TASKS IN WAVE 1 CONTAINERS    ║
+╚══════════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════════╗
+║     TASK 7: EACH MAPPER PROCESSES 1 BLOCK (128 MB DATA)      ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════╗
+║              TASK 8: WAVE 1 COMPLETES - 40 MAPPERS DONE      ║
+╚══════════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════════╗
+║       TASK 9: SCHEDULER ALLOCATES WAVE 2 (Next 40 containers) ║
+╚══════════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════════╗
+║     TASK 10: WAVES 2 TO 20 CONTINUE (Same pattern repeats)   ║
+╚══════════════════════════════════════════════════════════════╝
+
+╔══════════════════════════════════════════════════════════════╗
+║              TASK 11: SHUFFLE AND REDUCER PHASE              ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════╗
+║              TASK 12: JOB COMPLETION - CLEANUP               ║
+╚══════════════════════════════════════════════════════════════╝
+
+START: AM detects all Mappers and Reducers finished
+ACTION: AM unregisters from RM, releases all containers
+END: Client receives job success notification
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         SECTION 8: FLOW SUMMARY                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+【FLOW SUMMARY - 5 STEPS】
+Client submits 100 GB file + jar → RM's Application Manager creates AM Container (1 GB, 1 core) →
+AM runs inside it → AM negotiates with Scheduler for Task Containers (4 GB, 2 cores each) →
+Scheduler gives 40 containers per wave → Each wave processes 40 blocks (5.12 GB) in parallel →
+20 waves complete all 800 blocks (100 GB total)
+
+【SUMMARY - START TO END FLOW】
+Client → RM → AM Created → AM Registers → AM Requests 800 containers →
+Scheduler gives 40 in Wave 1 → 40 Mappers run → Wave 1 done →
+Wave 2 to Wave 20 → Reducer Phase → Job Complete
