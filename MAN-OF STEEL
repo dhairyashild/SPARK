@@ -1,21 +1,147 @@
-Assignment :-
-		YRAN
-		MAPPER
-		REDUCER
-		COMBINER
-		SHUFFL
-		REPLICATION
 
 Meeting Link Please
 
-WHAT is spark
-diff between Map Reduce / SPARK --> PANDAS
-diff between rdd / dataset/ dataframe
-What is Transformation
-WHat is Narrow Transformation
-WHat is WIDE Transformation
-what is Action
-what is lazy evolution
+**Q1: WHAT is spark?**
+
+| CONCEPT            | DETAILS                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| Definition         | Distributed in-memory computing engine for large-scale data processing  |
+| Driver (Master)    | Manages everything, creates partitions                                  |
+| Executor (Worker)  | Each partition processes alone on executor                              |
+| Partition          | Data split into chunks across servers (default 128MB per partition)     |
+| Example            | 100 Zomato servers, 1 crore orders/day (10GB data) → 200 partitions     |
+
+---
+
+**Q2: diff between MapReduce / SPARK / PANDAS**
+
+| MAPREDUCE          | SPARK              | PANDAS             |
+|--------------------|--------------------|--------------------|
+| Disk-based processing | In-memory processing | Single machine only |
+| Slower for iterative | 100x faster than MR | Limited to GB-scale |
+| Batch only         | Unified engine     | No fault tolerance |
+
+---
+
+**Q3: diff between RDD / DATAFRAME / DATASET**
+
+| RDD                | DATAFRAME          | DATASET            |
+|--------------------|--------------------|--------------------|
+| No schema          | Has schema         | Has schema         |
+| No optimization    | Catalyst optimizer | Catalyst + Tungsten|
+| Compile-time safety| Runtime safety     | Compile-time safety|
+| All languages      | All languages      | Java/Scala only    |
+| Low-level API      | High-level API     | Type-safe API      |
+
+---
+
+**Q4: What is Transformation?**
+
+| TRANSFORMATION     | DETAILS                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| Definition         | Instructions to modify data, returns new RDD/DataFrame                  |
+| Execution          | Does NOT compute immediately (lazy)                                     |
+
+---
+
+**Q5: What is Narrow Transformation?**
+
+| NARROW TRANSFORMATION | DETAILS                                                             |
+|-----------------------|---------------------------------------------------------------------|
+| Definition            | Each partition processed independently on ONE executor             |
+| Data Shuffle          | NO data shuffle between partitions                                  |
+| Speed                 | FAST                                                                |
+| Examples              | map, filter, union                                                  |
+
+---
+
+**Q6: What is WIDE Transformation?**
+
+| WIDE TRANSFORMATION | DETAILS                                                             |
+|---------------------|---------------------------------------------------------------------|
+| Definition          | Partitions exchange data ACROSS executors via network              |
+| Data Shuffle        | YES, data shuffled between partitions                              |
+| Speed               | SLOW due to SHUFFLE                                                 |
+| Examples            | groupBy, join, sort, distinct                                      |
+
+---
+
+**Q7: what is Action?**
+
+| ACTION              | DETAILS                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| Definition         | Triggers execution of all transformations                              |
+| Execution          | Spark waits until Action is called (Lazy Evaluation)                   |
+| Examples           | count(), show(), collect(), save()                                     |
+
+---
+
+**Q8: what is lazy evaluation?**
+
+| LAZY EVALUATION     | DETAILS                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| Definition         | Transformations are NOT executed immediately                           |
+| Execution Trigger  | Executes only when an Action is called                                 |
+| Benefits           | Optimizes execution plan, reduces unnecessary computation              |
+| How it works       | Builds DAG of transformations → executes at Action time                |
+
+---
+
+**Q9: RDD Definition**
+
+| RDD - Resilient Distributed Dataset | DETAILS                                                             |
+|-------------------------------------|---------------------------------------------------------------------|
+| Resilient                           | Can recover from failures (recomputes lost partitions)             |
+| Immutable                           | Cannot change once created (new RDD on transformation)             |
+| Fault-tolerant                      | Rebuilds lost data using lineage (DAG)                             |
+| Partitioned                         | Split into chunks across cluster                                   |
+| Definition                          | Immutable, fault-tolerant collection of objects partitioned across cluster |
+
+---
+
+**Q10: SPARK HIERARCHY (How Jobs are Born)**
+
+| LEVEL               | DETAILS                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| Job                | Created whenever an Action is called                                   |
+| Stage              | Job split into Stages at every Shuffle boundary (Wide Transformation)  |
+| Task               | Smallest unit of work, one Task runs on one Partition of data          |
+
+---
+
+**Q11: Why Apache Spark? What problem it solves?**
+
+| PROBLEM                     | SOLUTION BY SPARK                                                    |
+|-----------------------------|-----------------------------------------------------------------------|
+| MapReduce slow for iterative| 100x faster using in-memory computation                              |
+| Multiple engines needed     | Single unified engine (batch, streaming, SQL, ML, Graph)             |
+| No query optimization       | Lazy evaluation with DAG optimizer and Catalyst                      |
+| Limited language support    | Rich APIs (Java, Scala, Python, R)                                   |
+| HDFS replication overhead   | Fault tolerance via lineage (no replication needed)                  |
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+Apache Spark-- distributed in-memory computing engine for large-scale data processing across clusters.
+- Spark can connect with different data sources HDFS, JDBC/ODBC, Azure storage etc.
+Spark works with most all data storage systems.
+
+**Problems it solves:**
+- **Hadoop's disk I/O** - MapReduce writes to disk after every step (slow)
+- **Batch-only processing** - no real-time/streamingTRANS
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+Why Apache spark | Lec-2
+
+
+-- BIG DATA PROB =3V
+VELOCITY
+VARIETY
+VOLUME
+
+
 
 architecture of Spark
 Driver Executor
@@ -96,6 +222,17 @@ INSERT INTO departments VALUES
 
 
 ##################################################################################################
+Assignment :-
+		YRAN
+		MAPPER
+		REDUCER
+		COMBINER
+		SHUFFL
+		REPLICATION
+
+
+
+
 ================================================================================
           YARN & MAPREDUCE STEPWISE CORE COMPONENTS (SHORTEST PRODUCTION FLOW)
 ================================================================================
