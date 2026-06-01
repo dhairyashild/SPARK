@@ -514,7 +514,16 @@ INPUT:                        OUTPUT:
 +--------+-------+           +--------+-------+-----------+
 
 ================================================================================
+PRODUCTION BEST PRACTICE - MUST REMEMBER
 
+Priority | Command                                    | Use Case                           |
+ --------|--------------------------------------------|----------------------------------- |
+MUST     | df.withColumn("col", lit("value"))         | Add 1 constant column daily in prod for partitopn |
+MUST     | df.withColumn("date", lit(current_date())) | Add dynamic current date           |
+GOOD     | df.select("*", lit("v1").alias("c1"), lit("v2").alias("c2")) | Add 3+ columns   |
+AVOID    | df.select(lit("v").alias("c"))             | Loses original data (rarely needed)|
+
+================================================================================
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
