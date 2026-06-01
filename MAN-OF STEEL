@@ -1,3 +1,101 @@
+Assignment :-
+		YRAN
+		MAPPER
+		REDUCER
+		COMBINER
+		SHUFFL
+		REPLICATION
+
+Meeting Link Please
+
+WHAT is spark
+diff between Map Reduce / SPARK --> PANDAS
+diff between rdd / dataset/ dataframe
+What is Transformation
+WHat is Narrow Transformation
+WHat is WIDE Transformation
+what is Action
+what is lazy evolution
+
+architecture of Spark
+Driver Executor
+Lazy Evaluation
+What is Lineage
+write a code in rdd for word count. (Python)
+SparkSession SparkContext
+DAG --> Job --> Stage --> Task
+
+Difference between rdd, dataframe & dataset.
+how create sparkSession.
+Spark configuration propery.
+
+Same link
+
+How to read CSV file in spark.
+How to handle corrupt records.
+different types of mode avaiable while read a data.
+How to apply custom schema.
+how to read with default schema.
+
+Assignment :-
+AQE
+architecture of parquet , orc
+Coalesce , Repartition
+shuffleing concept
+
+compression technique and implemention on minimum 2 Gb data file
+
+File format trade Off
+################################
+ASSIGNMENT 1
+
+-- 1. Create Tables (Sample Dataset)
+-- Create Employees Table
+CREATE TABLE employees (
+   emp_id INT PRIMARY KEY,
+   emp_name VARCHAR(50),
+   department_id INT,
+   salary INT,
+   hire_date DATE
+);
+-- Create Departments Table
+CREATE TABLE departments (
+   department_id INT PRIMARY KEY,
+   department_name VARCHAR(50)
+);
+-- Insert Sample Data
+INSERT INTO employees VALUES
+(1,'Alice',101,60000,'2022-01-10'),
+(2,'Bob',102,75000,'2021-03-15'),
+(3,'Charlie',101,50000,'2023-07-01'),
+(4,'David',103,90000,'2020-11-20'),
+(5,'Eva',102,65000,'2022-05-05');
+INSERT INTO departments VALUES
+(101,'Engineering'),
+(102,'Sales'),
+(103,'HR');
+-- 2. Display all employees.
+-- 3. Find employees with salaries greater than 65000.
+-- 4. Show employee name with department name.
+-- 5. Calculate total salary for each department.
+-- 6. Find Average Salary by Department
+-- 7. Find Highest Paid Employee
+-- 8. Find Second Highest Salary
+-- 9. Count Employees per Department
+-- 10. Employees Hired After 2022
+-- 11. Rank employees by salary.
+-- 12. Find Running Total of Salaries
+-- 13. Find Employees with Salary Above Department Average
+-- 14. Increase salary by 10% for the Engineering department.
+-- 15. Delete Employees with Salary Less Than 55000
+-- 16. Find Duplicate Records
+-- 17. Find Top 3 Highest Salaries
+-- 18. Categorize Salaries as per your approach(like High, medium,low)
+
+#########################
+
+
+##################################################################################################
 ================================================================================
           YARN & MAPREDUCE STEPWISE CORE COMPONENTS (SHORTEST PRODUCTION FLOW)
 ================================================================================
@@ -43,6 +141,1185 @@
 
 ##########################################################################################################
 
+2 LECTURE
+
+
+
+What is SparkContext?
+    `SparkContext` is the original entry point for Spark functionality. It’s responsible for connecting to the Spark cluster, loading data, and interacting with Spark’s core functionalities.
+    It introduced in Spark 1.x.
+
+Why use SparkContext?
+    1. Low-level Operations: Provides access to low-level operations and configurations.
+    2. RDD Manipulation: Essential for working directly with Resilient Distributed Datasets (RDDs).
+
+Common Challenges with SparkContext
+    Context Management
+    Concurrency and Resource Allocation
+        In multi-user or multi-application scenarios, conflicts can arise when multiple users or applications attempt to utilize the same SparkContext.This can result in resource contention and suboptimal performance. 
+
+How to create SparkContext?
+    from pyspark import SparkContext, SparkConf
+    conf = SparkConf(key,value).setAppName(“example_spark_context”)
+    sc = SparkContext(conf=conf)
+
+What is SparkSession?
+    `SparkSession` is the entry point to programming with Spark. It provides a single point of entry to interact with Spark functionality and to create DataFrame and DataSet.
+    It introduced in Spark 2.0.
+    Spark Session is a combination of all these different contexts 
+        SparkContext (for RDDs)
+        SQLContext (for Spark SQL)
+        HiveContext (for Hive support)
+    Also we get the benifits of Catalyst Optimizer.This optimizer analyzes the structure of the DataFrame operations and generates an optimized query plan, resulting in faster and more efficient data processing. The Catalyst Optimizer is particularly beneficial for Spark SQL queries, enabling automatic optimizations such as predicate pushdown, column pruning, and join reordering.
+    Better Support For Concurrency and Resource Allocation.In multi-user or multi-application scenarios,Spark Session handles the isolation and resource management more effectively. It provides better support for managing resources, optimizing query execution, and improving overall performance. 
+
+Why use SparkSession?
+    1. Unified Interface: It combines the old `SQLContext`, `HiveContext`, and `SparkContext` into a single point of entry.
+    2. Ease of Use: Simplifies the process of starting and configuring a Spark application.
+    3. Better Optimaation Support.( Catalyst Optimizer )
+
+How to create SparkSession?
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder \
+                .appName(“example_spark_session”) \
+                .conf(key,value)
+                .getOrCreate()
+
+# Create SparkSession with Hive support
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder \
+        .appName("HiveExample") \
+        .config("spark.sql.warehouse.dir", "/user/hive/warehouse") \
+        .config("spark.executor.instances",3)
+        .config("spark.driver.cores",2)
+        .config("spark.executor.cores",3)
+        .config("spark.executor.memory",4G)
+        .enableHiveSupport() \
+        .getOrCreate()
+
+    spark.sql("show databases").show()
+
+
+=================================================================================================================
+
+RDD
+when we are deal with rdd. we deal with low level code.
+These low level code is not developer-friendly.
+rdd is lack some of the basic optimazation.
+
+DATAFRAME
+spark version 1.3
+Higher level constructs which make the developer life easy.
+challenges :-
+    1. dataframe do not offer  strongly typed code.
+    type error won't be caught at compile time rather we get suprise at runtime.
+
+    2. developer felt that there flexibility has become limited.. (we cann't write lambda function in dataframe)
+
+    3. whenever we want more flexibility and type safety  we have to convert dataframe into rdd. (df.rdd). But these conversion from df to rdd is not seamless.
+       if we work with raw rdd by converting dataframe to rdd. we will miss out on some of the major optimazations.
+
+    catalyst optimizer and tungstone engine are not for rdd so we miss these optimazaion by converting it into rdd
+
+DATASET
+
+    To overcome the dataframe chanllenges dataset developed.
+    spark version 1.6
+    it provide compile time safty. (strongly typed)
+    we get more flexibility in terms of using low level code.
+    conversion of dataset to rdd is seamless.
+    we won't loss any optimazation. (catalyst optimizer and tungstone engine)
+
+Before spark2 both dataframe and dataset are 2 different things..
+In spark2 they merged these 2 into a single unified spark dataset API ( structred API)
+
+
+
+whenever we are woking with dataframe or dataset we are dealinng with highe level programming constructs.
+when we are working with raw rdd that was a low level code.
+
+spark compailer will convert your high level code (dataframe or dataset) to low level rdd code.
+driver will convert your high level code in low level rdd code and then it will send the low level code to executors.
+
+when we are dealing with rdd the code directly goes on executor and run.
+when we are dealing with dataframe or dataset our high level code run on driver and driver do the rest i.e conversion of high level code to low level and send it to the executor.
+
+===============================================================================================================
+Normal Flow Of Spark Application
+
+1. Read the data from a Data Source and create a dataframe/datasets.
+        - external data source (mysql database,readshift,mongodb)
+        - internal data source (hdfs ,s3,azure blob, google storage)
+
+so we have the flexibility in spark to create a dataframe directly from an external data source.
+spark gives you a jdbc connector to ingest the data from mysql databases
+
+2. performing a bunch of transformations and actions.
+    transformation/action using higher level construct
+
+3. writing the data to the target(Sink)
+    internal/external
+
+===============================================================================================================
+
+Spark Config :-
+https://spark.apache.org/docs/latest/configuration.html
+
+===============================================================================================================
+
+Reading CSV File :-
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder \
+                .appName(“example_spark_session”) \
+                .getOrCreate()
+
+    df = (
+    spark.read
+        .option("header", "true")
+        .option("inferSchema", "true")
+        .option("sep", "|") 
+        .option("mode", "DROPMALFORMED")
+        .csv("hdfs://path/to/file.csv")
+        )
+
+  df.show()-->20
+  df.collect()
+
+InferSchema has to read first 100 records to impose schema for each column.That why it is action.It will 1st convert it from bytes(serilized) to object form (deserilized)
+and then read it and impose it.
+
+Note :- 
+    Inferschema is not used in production environment.
+    In inferschema it will read first N records (consider 100 ) and based on that it impose the schema but after that if schema is changed (after 100 record) then it will through error.
+
+
+There are Three Modes reading modes 
+    1. PERMISSIVE (default mode) :- It set all the fileds to NULL when it encountered a corrupted records. 
+                                    It will create new column _corrupt_record and drop corrupted records in it.
+    2. DROPMALFORMED             :- Will ignore the malformed record.
+    3. FAILFAST                  :- Whenever malformed encountered it through as exception.
+
+
+
+Reading PARQUE File :-
+            In these we don't need to define the schema.schema comes with file.
+        df = (
+            spark.read
+        .option("mergeSchema", "true")              # merge schema evolution
+        .option("recursiveFileLookup", "true")      # read all subdirectories
+        .parquet("hdfs://path/to/parquet_dir")
+                )
+
+Reading From JDBC Connection
+    jdbc_url = "jdbc:mysql://localhost:3306/mydb"
+    table_name = "employee"
+    properties = {
+        "user": "root",
+        "password": "mypassword",
+        "driver": "com.mysql.cj.jdbc.Driver"
+    }  
+
+
+    # Read data from MySQL
+    df_mysql = spark.read.jdbc(url=jdbc_url, table=table_name, properties=properties)
+    df_mysql.show()
+
+options to have spark dataframe :- 
+    1. INFER  ( inferschema option )
+    2. IMPLICIT ( parque , avro )
+    3. EXPLICIT ( manually defining schema )
+
+
+EXPLICIT Schema :
+    1. Programatically 
+    2. DDL
+
+Programatically Approach:-
+    StructType valid for each row.
+    StructField valid for each column.
+    Here we have to spark datatypes.
+    
+        from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+
+        # Define schema
+        schema = StructType([
+            StructField("id", IntegerType(), True),      
+            StructField("name", StringType(), True),
+            StructField("age", IntegerType(), True),
+            StructField("salary", DoubleType(), True)
+        ])
+
+        # Apply schema while reading CSV
+        df = spark.read.schema(schema).csv("hdfs://path/to/file.csv", header=True)
+
+        df.printSchema()
+        df.show()
+
+    The thrid parameter is optional.
+    It represet nullable.
+    If it true it takes null value and if false it will not take null value and give error.
+
+
+datatype :
+       Scala          Spark
+       int          IntegerType
+       Long         LongType
+       date         DateType
+       float        FloatType
+       double       DoubleType
+       TimeStamp    TimeStampType
+
+
+DDL string Approach :-
+    Here we are giving scala data types.
+
+Ex.
+    schema = "id INT, name STRING, age INT, salary DOUBLE"
+    df = spark.read.schema(schema).csv("hdfs://path/to/file.csv", header=True)
+    df.printSchema()
+    df.show()
+
+
+===============================================================================================================
+
+
+How to write dataframe in sink
+
+Basic Format
+df.write.format("csv").mode("overwrite").option("maxRecordsPerFile", 10000).option("key", "value").save("path")
+
+Shortcut
+    df.write.csv("path")
+    df.write.json("path")
+    df.write.parquet("path")
+    df.write.orc("path")
+
+
+Write Modes
+    Controls what happens if the output path already exists.
+        "overwrite" → Replace existing data
+        "append" → Add to existing data
+        "ignore" → Skip write if path exists
+        "error" or "errorifexists" (default) → Fail if path exists
+
+
+
+Normally when we are writing a dataframe to our target  then we have few option to control the file layout.
+spark file layout
+    1. repartitions (Increase Partition)
+    2. Coalesce (Reduce Partitions)
+    3. partitioning and bucketing
+    4. sortBy (sorted data)
+    5. maxRecordsPerFile
+
+Note :- Number of output files is equal to the number of partitions in your dataframe.
+
+
+repartition
+==========
+    1. It can help to increase the parallelism
+
+df.repartition(10).write.mode("overwrite").parquet("output/parquet")
+
+
+Coalesce
+=========
+        1. It can help to reduce the no of files.
+df.coalesce(1).write.mode("overwrite").csv("output/single_file", header=True)
+
+
+partitionBy
+===========
+    1. It is equal to partitioning in hive.
+    2. It provide partition Purning.
+df.write.partitionBy("year", "month").parquet("path/output")
+
+
+year=2025
+    month=01
+      .parquet
+      .parquet    
+      .parquet
+      .parquet
+    month=02
+      .parquet
+      .parquet
+      .parquet
+      .parquet
+
+
+
+Bucketing  & Sorting (requires Hive support)
+===============================================
+    df.write.partitionBy("year", "month").bucketBy(4, "id").sortBy("name").saveAsTable("bucketed_table")
+
+year=2025
+    month=01
+      .parquet
+      .parquet    
+      .parquet
+      .parquet
+    month=02
+      .parquet
+      .parquet
+      .parquet
+      .parquet
+
+
+usr/hive/warehouse/bucketed_table/4
+
+    df.repartition(10).write.format('parquet').mode("overwrite").save("output/parquet")
+    df.repartition(10).write.format('parquet').mode("overwrite").saveAsTable("output/parquet")
+
+
+maxRecordsPerFile
+=================
+    1. It will help to control how many records per file contain.
+
+df.write \
+  .option("maxRecordsPerFile", 10000) \
+  .parquet("output/path")
+
+===============================================================================================
+
+Assignment:-
+    create rdd from dummy data.
+    create dataframe from dummy data.
+    create dataframe from rdd.
+    Apply filter more than 2 columns.
+    add column in exiting dataframe
+    dropDuplicates, distinct, groupBy
+    Casting int->str, int->double, change the dateformat
+    differnt string function
+    different array function
+    read dataframe 
+    write dataframe
+
+
+
+##########################################################################################################
+
+33333333333333333333333333
+
+
+
+Reference Link :-
+    https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/spark_session.html
+
+
+Spark Deployment Modes ( where the Spark driver runs )   
+    Client Mode
+        Driver location: Runs on the machine submitting the Spark job (client).
+        Executors: Run on cluster nodes.
+        Use case: Interactive jobs (notebooks, Spark shell).
+        Pros: Immediate feedback for users, easy debugging.
+        Cons: If client machine fails, the job fails.
+
+        spark-submit --master yarn --deploy-mode client app.py
+
+
+    Cluster Mode
+        Driver location: Runs on a cluster node.
+        Executors: Run on other cluster nodes.
+        Use case: Batch jobs, production pipelines, long-running jobs.
+        Pros: Fault-tolerant, client machine not needed after submission.
+        Cons: Harder to debug; driver logs are on cluster node
+
+        spark-submit --master yarn --deploy-mode cluster app.py
+
+        spark = SparkSession.builder \
+                    .appName("ClusterModeExample") \
+                    .master("yarn") \
+                    .config("spark.submit.deployMode", "cluster") \
+                    .getOrCreate()
+
+
+
+    Local Mode    
+        Driver & Executors: Both run on the same machine.
+        Use case: Development, testing, and debugging small datasets.
+        Pros: Easy setup, fast startup, easy to debug.
+        Cons: Not scalable, limited by local machine resources.
+
+        Master URL examples:
+            local → single-threaded
+            local[4] → 4 threads
+            local[*] → all available cores    
+
+        from pyspark.sql import SparkSession
+
+        spark = SparkSession.builder \
+            .appName("LocalExample") \
+            .master("local[*]") \
+            .getOrCreate()
+
+
+
+=====================================================================================
+SPARK-SQL
+
+createOrReplaceTempView
+======================
+    1. It is used for create distributed table from spark daaframe.
+    2. After creating table we can perform all  the operation by writing sql query.
+        Ex. 
+            data = [(1, "Alice", 25), (2, "Bob", 30)]
+            columns = ["id", "name", "age"]
+            df = spark.createDataFrame(data, columns)
+
+            # Create a temporary view
+            df.createOrReplaceTempView("people")
+
+            # Query using Spark SQL
+            spark.sql("SELECT * FROM people WHERE age > 25").show()
+ 
+    3. If we want it accessible across multiple SparkSessions within the same app.
+        df.createOrReplaceGlobalTempView("people")
+        spark.sql("SELECT * FROM global_temp.people").show()
+
+        # First SparkSession
+        spark = SparkSession.builder.appName("App1").getOrCreate()
+        df.createOrReplaceGlobalTempView("people")
+
+        # Another SparkSession within the same application
+        spark2 = spark.newSession()
+        spark2.sql("SELECT * FROM global_temp.people").show()
+
+==================================================================================================================
+
+How to refer a column in dataframe/dataset.
+1. column string
+    read_csv.select("order_date","order_status").show() 
+
+2. column_object
+ from pyspark.sql.functions import col
+  read_csv.select(col("order_date"),col("order_status")).show()    
+
+3. SQL Style Expressions   
+    df.selectExpr("age + 10 as new_age", "upper(name) as name_upper").show()
+
+==================================================================================================================
+
+
+Join in dataframe.
+
+`.join keyword is used for joining the dataframe`
+
+.join - It will take 3 parameter.
+    leftDf.join(rightDf,condition,typeOfJoin)
+    
+    condition = on which colume we have join two df
+
+
+Types of joins
+    1. inner
+        df1.join(df2, df1.id == df2.id, "inner").select(col("id"))  --> id column is ambigus
+
+    2. left/left_outer
+        df1.join(df2, df1.id == df2.id, "left")
+
+    3. right/right_outer
+        df1.join(df2, df1.id == df2.id, "right")
+
+    4. Full Join
+        df1.join(df2, df1.id == df2.id, "full")
+
+    5. Left Semi Join ( does not include columns from the right DataFrame )
+        df1.join(df2, df1.id == df2.id, "left_semi")
+
+    6. Left Anti Join
+        df1.join(df2, df1.id == df2.id, "left_anti")
+
+    7. cross join
+        df1.crossJoin(df2)
+
+
+============================================================================================
+
+How to deals with ambiguty?
+This happen, when we try to select a column  name which is coming from 2 different  dataframe after join.
+soln :- 
+    There are two ways to handle these.
+        1. rename the ambigous column in one of the dataframe.( .withcolumnRename("oldname","newname") )
+        2. drop one of the column after join. (.drop(dataframe("column_name")))
+
+
+============================================================================================
+
+How to handles null?
+    problem statement.
+    =================
+        whenever order_id is null show -1.
+    soln
+    ====
+        we can you coalesce for these.
+        systax
+            .withColumn("col_name",expr("coalesce("orderid",-1)"))  
+
+    coalesce- it will print -1 insted of null. It is different from coalesce(1).
+
+========================================================================================================     
+
+
+Assigment
+    how to see spark-catalog.
+    Create dataframe from rdd.
+    Create dataframe from pandas dataframe.
+    Create Dataframe from sample data.
+    After creating dataframe apply  transformation  on it like. select, filter, count, min , max, groupBy.
+    Get familiar with show, collect, save, saveAsTable Actions.
+    Create Temp Table of Same dataframe and get familier with spark.sql("").
+    What is UDF. Create one Sample UDF.
+
+
+
+
+
+
+
+##########################################################################################################
+
+#  JOIN STRATEGIES
+
+
+In Spark, you can expect to encounter five primary types of joins:
+
+Broadcast Hash Join
+Shuffle Hash Join
+Sort Merge Join
+Cartesian Join
+Broadcast Nested Loop Join
+
+Broadcast Hash Join
+The Broadcast Hash Join is the speedster of Spark joins. As the name suggests, it occurs when one of the data frames or tables is broadcast to all the executor nodes. To make this happen, one side of the data must be small enough to fit entirely in memory. Initially, this table is stored on the Driver node and then broadcast to all the executor nodes.
+
+By default, Spark considers a table for broadcasting if it's under 10 MB in size. You can modify this configuration using the following command:
+
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", [your threshold in Bytes])
+
+spark automatically selects the Broadcast Hash Join when it encounters a smaller data side. To disable this automatic application, use the following configuration:
+
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
+Note: It is highly recommended not to disable this configuration as it is the most efficient method for joining small and large tables.
+
+Tips to make this join happen :
+
+It should be Equi join with one side being smaller
+Hint as broadcast join for one of the side.
+
+# Way to mention hint for Broadcast Join
+
+largeDF.join(smallDF.hint("broadcast"),largeDF.joinkey == smallDF.joinkey,"inner")
+
+
+Sometimes, Spark may fail to detect the smaller table. In such cases, you can use hints to trigger the Broadcast Hash Join. But broadcasting a large data will lead to OOM issue. The Join side with the hint will be broadcasted irrespective of autoBroadcastJoinThreshold, if a broadcast hint is specified on either side of the join. 
+
+
+from pyspark.sql.functions import broadcast
+
+bhj = df1.join(broadcast(df2), "id", "inner")
+bhj.explain()
+
+-------------------------------------------------------
+
+Shuffle Hash Joins
+When both tables are large, getting the broadcast join may lead to out-of-memory issues. In that case, Shuffle Hash Join can be a better option. These are quite expensive compared to broadcast joins as they involve both shuffling of data and hashing.
+
+It happens in two phases:
+
+Repartitioning on both tables will happen based on the joining keys using hash partitioning, providing 200 partitions (as per the default shuffle partitions config; default value is 200).
+A hash table is created for the lookup activity, and the join happens based on that.
+
+Currently, most of the Spark systems have made Sort Merge Join their default choice over Shuffle Hash Join because of its consistently better performance compared to Shuffle Hash Joins. For this example, if you want to test the Shuffle Hash Join, use the following command to turn off the automatic Sort Merge Joins.
+
+spark.conf.set("spark.sql.join.preferSortMergeJoin","false")
+If you are aware that the data is distributed uniformly over partitions without any skewness, you can consider this join over Sort Merge Join.
+
+Tips to make this join happen:
+
+It should be an Equi-join.
+Hint it as a Shuffle join for one of the sides.
+
+# Way to mention hint for Shuffle Join
+
+DF1.join(DF2.hint("shuffle_hash"),DF1.joinkey == DF2.joinkey,"inner")
+
+
+
+---------------------------------------------------------------------------------
+
+
+Shuffle Sort Merge Join
+This is more preferable over Shuffle Hash Join, considering its consistency over different cases. These joins happen in three stages:
+
+Repartitioning on both tables will happen based on the joining keys using hash partitioning, providing 200 partitions (as per the default shuffle partitions config; default value is 200).
+Sorting of data happens on each partition individually.
+As a last step, merging happens based on the joining key.
+
+Tips to make this join happen:
+
+It should be an Equi-join.
+Hint it as a Merge join for one of the sides.
+
+
+# Sample data
+df1 = spark.createDataFrame(
+    [(1, "A"), (2, "B"), (3, "C")],
+    ["id", "val1"]
+)
+
+df2 = spark.createDataFrame(
+    [(1, "X"), (2, "Y"), (4, "Z")],
+    ["id", "val2"]
+)
+
+# Normal join (triggers shuffle sort merge join if both are large)
+smj = df1.join(df2, "id", "inner")
+smj.explain()
+
+------------------------------------------------------------------------
+
+Cartesian Join
+A Cartesian Join results in each record from one table being joined with every row in the other table. This is a costly join and can lead to out-of-memory (OOM) issues when there is insufficient space to execute the join.
+
+Tips to make this join happen:
+
+It should be a Non-Equi join.
+Joining condition is not necessary when you specify a cross join.
+
+----------------------------------------------------------------------------
+
+Broadcast Nested Loop Join
+In a Broadcast Nested Loop Join, we typically have one large table, often a fact table, and a smaller dimension table. Each dimension in the smaller table relates to all the fact records. This dimension data is broadcasted to all the executors handling portions of the fact data.
+
+Tips to make this join happen:
+
+It should be a Non-Equi join.
+Joining condition is not necessary when you specify a cross join.
+The small table can be broadcastable.
+
+bnlj = df1.join(broadcast(df2), df1.id > df2.id, "inner")
+bnlj.explain()
+
+
+
+##########################################################################################################
+# SPARK PERSIST 
+
+
+Cache And Persist
+==================
+
+Cache And Persist both have same purpose.
+If we want to reuse the results of existing rdd then you can use then.
+It will speed up the apllication by using same rdd or not computing every time.
+An rdd that is not cached is re-evalutated again each time an action is invoked.
+
+The difference between cache and persist.
+cache will cache the rdd in memory.
+
+persist comes with various storage levels.
+	DISK_ONLY :- 
+		Data is stored in Disk. 
+		It is in serialized format. (In the form of Bytes )
+		It takes less space.
+
+	MEMORY_ONLY :- 
+		Data is stored in in-memory.
+		It is non-seialized format. (In the form of Object)
+		It takes more space.
+	
+	MEMORY_ONLY_2 :- 
+		This number 2 indicates 2 replias stored on 2 different workers nodes.
+		Replication is useful for speeding up recovery is case one node of the cluster fails.
+
+	MEMORY_ONLY_SER :-
+		To use serilized format we use MEMORY_ONLY_SER
+
+	MEMORY_AND_DISK :-
+		It stores the data in  non-serilized format by default.
+		Data is stored in in-memory, if enough memory is not available,evicted blocks from memory are stored in disk with serialized format (a.k.a eviction policy).
+		These mode of operation is recommanded when re-evaluion is expensive and memory rescourses are limited.
+
+		eviction policy :-
+			consider the situation that some of the block partitions are so large (skew) that they will quick fill up the storage memory used for cacheing.
+			when storage memory becomes full, an eviction policy will be used to make up the space for new blocks.
+			For these it will use LRU (Least Recently Used)
+
+	MEMORY_AND_DISK_SER :-
+			To use serilized format we use	MEMORY_AND_DISK_SER		
+
+	OFF_HEAP :-
+		Blocks are cached off-heap.
+		off-heap - outside the JVM
+		problem with stroging the object in jvm is that it uses gc for freeing up. GC to free up the space is time taking process.
+		OFF_HEAP is unsafe thing as we have to deal with raw memory outside your JVM.
+		It stores in serilzses format.
+
+Serialization increases the processing cost but reduce the memory foot print.
+In non-serialization processing is bit fast but it uses more memory foot print.
+
+Note :- 
+	1. If we don't mention the storage level in persist than it work as cache.
+	2. rdd.toDebugString is to check the lineage graph. And we need to read it from bottom to top.
+	3. If we are using MEMORY_ONLY or cache() and our data is more than memory than it will not through any error but it will not persist any data and skip optimazation.
+
+==========================================================================================================================
+
+StorageLevel(True, False, False, False, 1)
+
+useMemory=True → stored in memory
+
+useDisk=False → not stored on disk
+
+deserialized=True → kept as Java objects
+
+replication=1 → single copy	
+
+
+
+
+df.persist(storageLevel=DISK_ONLY)
+
+
+##########################################################################################################
+
+
+CATALYST OPTIMIZER 
+   The Catalyst Optimizer is a query optimization engine in Apache Spark. It improves the efficiency of queries by transforming and optimizing execution plans.
+
+Key Steps in Catalyst Optimizer:
+   1. Logical Plan Creation:
+      - Spark creates an unresolved logical plan based on your DataFrame/Dataset code.
+      - It contains column names, table references, and expressions but isn’t validated yet.
+
+   2. Logical Plan Resolution:
+      - Spark validates and resolves the logical plan using:
+        - Schema information.
+        - Catalog (if tables/views are registered).
+      - Produces a resolved logical plan.
+
+   3. Rule-Based Optimization (RBO):
+      - Applies predefined rules to optimize the resolved logical plan.
+      - Examples of rules:
+        - Predicate Pushdown: Moves filters closer to the data source.
+        - Projection Pruning: Removes unnecessary columns.
+        - Constant Folding: Precomputes constant expressions.
+
+   4. Physical Plan Generation:
+      - Multiple physical plans (execution strategies) are generated for the optimized logical plan.
+      - Examples: Broadcast join, shuffle join.
+
+   5. Cost-Based Optimization (CBO):
+      - Spark uses a cost model to choose the most efficient physical plan.
+      - Relies on data statistics (if available) for better decision-making.
+
+   6. Execution:
+      - The chosen physical plan is converted to RDD operations.
+      - Executors process the tasks based on these operations.
+
+Why Is It Important?
+   - Performance Boost: Optimizes queries to run faster.
+   - Automatic: No need to manually optimize queries.
+   - Flexible: Works with various data sources and query types.
+
+Key Concepts to Remember:
+   - Unresolved Logical Plan: Initial plan from user code.
+   - Resolved Logical Plan: Validated plan with schema information.
+   - Optimized Logical Plan: Improved plan after applying rules.
+   - Physical Plan: Execution strategy sent to executors.
+
+Total Number of Rules :
+   - Spark includes dozens of rules (more than 100 in recent versions) for optimization.
+   - These rules are defined in the org.apache.spark.sql.catalyst.rules.Rule class and implemented in packages like 
+         org.apache.spark.sql.catalyst.optimizer.
+   Examples of commonly applied rules:
+      Predicate Pushdown: Moves filters closer to the data source.
+      Constant Folding: Precomputes constant expressions.
+      Projection Pruning: Removes unnecessary columns from queries.
+      Reorder Join: Reorganizes joins for efficiency.
+      Eliminate No-Op Operations: Removes redundant transformations.
+      Simplify Expressions: Simplifies expressions to reduce computational complexity.
+
+How Many Rules Are Applied to a Logical Plan?
+   The number of rules applied depends on:
+      - The complexity of the logical plan.
+      - The nature of operations in the query.
+      - The transformations required to optimize the plan.
+      - For a simple query, only a small subset of rules may be applied.
+      - For a complex query with multiple joins, filters, and projections, many more rules may come into play.
+
+##########################################################################################################
+
+
+
+##########################################################################################################
+
+
+
+
+##########################################################################################################
+
+
+
+Spark Executor Memory 
+
+1. Memory Overhead
+	This includes off-heap memory and JVM overhead (like garbage collection). 
+	Default is:
+		max(384MB, 10% of spark.executor.memory)
+
+	This memory is outside the Java heap and is critical for things like Python worker processes (in PySpark) or native code execution.
+	Important thing to note here is that this memory is not a part of spark.executor.memory. So when you specify a spark.executor.memory as 10GB, the actual size of executor requested from cluster is 10GB + 10% of 10GB = 11GB.	
+
+2. On-Heap Memory
+	Set using spark.executor.memory. 
+	This is the main memory Spark uses and is further split into:	
+		2.1 Unified Memory
+			By default, 60% of spark.executor.memory is allocated to this unified memory (controlled by spark.memory.fraction). Unified Memory is divided in Execution Memory and Storage Memory. By default, each gets 50% of the unified space, governed by spark.memory.storageFraction (default 0.5).
+
+			Execution Memory
+				Used for shuffles, joins, sorts, and aggregations - basically, all runtime computations.
+
+			Storage Memory
+				Used for caching RDDs/DataFrames and holding broadcast variables.
+				If one side doesn't need all its allocated share, the other can borrow it:
+					If nothing is cached, execution can temporarily use the entire unified memory.
+					If no computation is ongoing, storage can fill up more memory with cached data.
+				
+				If Storage runs out - Least Recently Used (LRU) cached blocks are evicted to free up memory
+				If Execution runs out - Task fails with an OOM error - there’s no eviction fallback here		
+
+			Here’s how you can optimize for different scenarios:
+				Shuffle-heavy jobs? - Increase execution memory (spark.memory.storageFraction = 0.2)
+				Cache-heavy workloads? - Give more room to storage (spark.memory.storageFraction = 0.7)	
+
+		2.2 User Memory
+			This is what’s left after removing spark.memory.fraction and the 300MB reserved memory. It’s used for user-defined data structures, variables, and objects, and typically amounts to ~40% of the total executor memory.
+
+		2.3 Reserved Memory
+			Has a fixed size of 300MB. Spark reserves this chunk to avoid running out of memory during operations.
+
+3. Off-Heap Memory						
+	Set using spark.memory.offHeap.size. If enabled (spark.memory.offHeap.enabled=true), Spark can allocate memory outside the JVM heap, useful for Tungsten-optimized operations or memory-mapped files.Off-heap memory doesn’t sit in the JVM heap, so it’s not scanned or cleaned by the GC. This is great for large-scale jobs where GC pauses can slow things down significantly.
+
+=========================================================================================================================================
+
+
+Summary
+
+Memory Overhead
+	This is memory outside the Java heap, used for off-heap allocations, Python workers (in PySpark), and other native processes. It’s not part of spark.executor.memory.
+	Default: 10% of spark.executor.memory, controlled by spark.executor.memoryOverhead.
+
+On-Heap Memory
+	This is the main memory allocated to the executor, configured via spark.executor.memory.
+
+	Unified Memory (default 60% of spark.executor.memory)
+		Execution Memory: Used for shuffles, joins, sorts, and aggregations.
+		Storage Memory: Used for caching DataFrames, RDDs, broadcast variables, etc.
+						This split is dynamic and managed by Spark internally, controlled by spark.memory.fraction.
+		User Memory (remaining ~40%)
+			Used for internal Spark metadata, user-created data structures, and temporary objects. This portion isn’t managed by the unified memory manager.
+		Reserved Memory (~300MB)
+			Fixed amount reserved for Spark's internal needs (like task metrics, etc).
+
+So if you set spark.executor.memory to 10GB, Spark allocates 10GB for on-heap use, and adds ~10% extra as overhead — resulting in a total container memory of ~11GB requested from the cluster.	
+
+##########################################################################################################
+One of the most fundamental decisions to make when you are architecting a solution on Hadoop/cloud is determining how data will be stored in Hadoop.
+
+Major considerations for Hadoop data storage include:
+	1. File Format
+	2. Commpression techniques
+
+
+why we need different file formats?
+	we want to save storage
+	we want fast processing
+	we want less time for our I/O operations.
+
+As the data increases, the cost for storage and processing increases too.
+
+The various Hadoop file formats have evolved as a way to ease these issues across a number of use cases.
+
+
+There are lot of choices available on file formats.
+	1. Faster read
+	2. Faster write
+	3. splittable ( In big data solutions we consider only splittable file formats )
+	4. Schema evolution support
+	5. Advanced compression 
+	6. Most compatible platformat. ( like spark,hive)
+
+All the file formats are divided into 2 broad category.
+	1. Row based file format.
+		The whole row (all columns) of data from the disk has to be read in memory even if you need only a few columns. Row-oriented storage is suitable for situations where the entire row of data needs to be processed simultaneously.
+		Writing is fast.
+		Reading is slow for subset of columns.
+		Less compression.
+		Ex. 1 vishvjit Data-Enginner, 2 jivan Angular, 3 pranali Pl/Sql, 4 sanchit data-Enginner
+
+
+	2. column based file format.
+		The entire file is divided in several columns of data, and each column of data stored together
+		The column-oriented format makes it possible to skip unneeded columns when reading data, suitable for situations where only a small portion of the rows are needed.
+		Reading is fast.
+		Writting is slow.
+		Better Compression.
+		Ex.  1 2 3 4 , vishvjit jivan pranali sanchit, data-Enginner angular Pl/Sql data-enginner
+
+
+	3. Text File Format
+		CSV - Raw file
+			Data is stored in a human readble from.
+			Everything is stored in a text from.
+			ex. Interger value is also stored as text.
+		Consume more storage.
+		processing text file is very slow.
+		IO operation will also take lot of time.
+				Ex. conversion of string to interger. '444424' --> 444424 I/O operation takes lots of time.
+		Human readable.
+
+
+	XML & JSON
+	==========
+		Disadvantage of XML & JSON
+		These are human readable.
+		These takes lots of size due to everthing stored as string.
+		processing on text file can be very very slow. Ex. conversion of string to interger. '444424' --> 444424
+		I/O operation takes lots of time.
+		These files are not spittable.
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+Specilize File Format
+	There are several Hadoop-specific file formats that were specifically created to work well with Big Data Technologies. 
+	These Hadoop-specific file formats include serialization formats like Avro and columnar formats such as Orc and Parquet.
+	These file formats have differing strengths and weaknesses, but all share the following characteristics that are important for Hadoop applications:
+
+	Splittable 
+		The ability to split a file for processing by multiple tasks is of course a fundamental part of parallel processing, and is also key to leveraging Hadoop’s data locality feature.
+
+	Agnostic compression 
+		The file can be compressed with any compression codec, without readers having to know the codec. This is possible because the codec is stored in the header metadata of the file format.Commpression codec( code of compression ) is kept in metadata of this file.	so whenever the reader wants to read he gets to know this compression codec from metadata and can easily understand  this data.
+
+
+
+==============================================================================================
+
+Avro File format.
+1. Row based file format.
+2. Faster write.
+3. slower read. ( while reading subset of column)
+4. It is genric  file format. Many language support Avro file format like C,python,C++,java
+5. Schema-Evalution :- we can modified schema of avro file.
+6. It is splittable.
+7. It is Serilized file format.
+8. Data and schema are kept togather. schema is stored in header. No need to store in external db.
+The schema for Avro file is stored in  JSON form.
+This data  is self describing  because  the schema(metadata) is embedded as part of your  data itself.
+And actual data is stored in binary format.which is efficent in term of storage.
+
+Schema Evolution :- Avro is quite matured in terms of schema evolution. There is no other file format better than avro in terms of schema evolution.
+			adding new column, removing old column , renaming columns.
+When to use Avro :- 
+	Avro can be best fit for  storing data  in the landing zone of datalake(hdfs).
+	while ETL process we can use it.Becasue we read all the data.
+
+
+Serilization :- convertng the data into the form which can be easily  transfered over the network and stored  in file format.
+
+
+===============================================================================================================================
+
+ORC File Format (Optimized  columnar) :- 
+
+1. column  base file format
+2. write are slow.(not efficent)
+3. Reads are fast.
+4. In terms of storage it is higly efficient. Because it usese below techinque.
+	lightweight compression :- Dictornary encoding,bit packing,delta encoding,run length encoding along with generalized 
+	compression techniques like snappy,gzip,lzo.
+	
+	Dictornary encoding 
+		Supported datatypes STRING, VARCHAR, CHAR  
+		Ex.
+			["Apple", "Banana", "Banana", "Apple", "Cherry"]
+			0 → "Apple"
+			1 → "Banana"
+			2 → "Cherry"
+	Encode the column as: [0, 1, 1, 0, 2]
+	These values are stored in two streams:
+		A dictionary stream: stores the actual strings.	
+		A data stream: stores the integer indices.
+				
+ 
+	bit packing :-  Bit packing is a compression technique that stores integers using only the minimum number of bits required.
+	Ex.
+	 [1, 2, 3, 4] → Max is 4 → Needs only 3 bits (since 2³ = 8)
+	 Instead of using 32 bits per integer, we store each in 3 bits, saving space.
+
+	 Normally, in most systems, integers are stored using 32 bits (4 bytes), even if the number is small.
+	 [1, 2, 3, 4] = 4 numbers × 32 bits = 128 bits
+	 With Bit Packing
+	 	Now, if we use only 3 bits per value, we get: 4 numbers × 3 bits = 12 bits
+	 	That’s a 91% reduction in space!
+		| Value | Binary (3 bits) |
+		| ----- | --------------- |
+		| 1     | 001             |
+		| 2     | 010             |
+		| 3     | 011             |
+		| 4     | 100             |
+
+	Packed together in memory:
+		001010011100 (12 bits total)
+
+	delta encoding :-
+		Delta encoding is a compression technique where you store the difference (delta) between consecutive values, instead of the values themselves.
+		Original Data: [100, 102, 105, 106]
+		Delta Encoded: [100, 2, 3, 1]
+		First value (100) is stored as-is.
+		Then:
+			102 − 100 = 2
+			105 − 102 = 3
+			106 − 105 = 1
+
+	run length encoding :-
+		Run-Length Encoding (RLE) is a simple compression technique that replaces repeated values in a sequence with a single value and a count of how many times it occurs.
+		instead of storing: ["A", "A", "A", "B", "B", "C"]
+		You store: [("A", 3), ("B", 2), ("C", 1)]
+
+
+5. ORc file format offers predicate pushdown.
+6. It is best fit fot hive. (specially designed for hive)
+7. ORC support all the datatype with complex datatype of hive.
+8. Schema-evaulation -  It support schema evalution , but is not matured like AVRO.
+			Metadata of orc is stored as protocol buffers.which allow addition and removal of fields.
+9. It is splittable.
+
+
+Structure of ORC file
+========================
+1. Header
+2. Body --> Stripes-->row group
+3. Tail
+
+1. Header :-
+		"ORC" is wrriten in these to know it is ORC file.
+
+2. Body :- Body is made of stripes of data. These stripes further divied into block of records by default there are 10000 rows are there  in each  block(row group)
+	   Default size of stripes is 250mb
+	   stripes are further divied into row grop.Each row group holds 10000 rows by default.
+	   ex. if you have 500mb orc file then there is 2 stripes of 250mb each.
+		and if in each stripe of 250mb if there are 1 lakh records.Then these will divide into 10 row group each row group has 10000 records.
+		1 orc file
+		2 stripe in body of file
+		each strip has 10 row group
+
+	   Stripe structure 
+	===========================
+	1. set of index :- max & min & count for each column in every row group  in the stripe
+			   Ex.   stripe 1: rowgroup 1: empid min 102 max 300
+				 stripe 1: rowgroup 2: empid min 700 max 900
+
+		Indexes are at 3 level:-
+			1. File level  (Min and Max for entire file)
+					statistics about the values in each column across the entire file
+			2. stripe level (Min and Max for each stripe)
+				- statistics about the values in each column for each stripe
+			3. row level
+				statistics about the values in each column for each set of 10,000 rows within a stripe.
+		Note :- File level and stripe level index is stored in file footer.And row level is kept in index data of stripes.
+	2. the data itselt broken into row group
+	3. stripe footer :- It holds encodeing information
+
+3. Tail
+     It consist of 2 parts :-
+	1. file footer :- 
+			It contain meta data at file level.( meta data of whole orc file )
+			Also it contain stripe level min and max.
+			File level and stripe level index is stored in file footer.
+	2. postscript:-
+			It store which type of encodeing is used.
+			It not in compressed  form.
+			It helps to understand remaing part of file.
+
+The file and stripe level column statistics are in the file footer so that they are easy to access to determine if the rest of the file needs to be read at all. 
+Row level indexes include both the column statistics for each row group and the position for seeking to the start of the row group. 
+The process of reading an ORC file works backwards through the file. The ORC reader reads the last 16k bytes of the file with the hope that it will contain both the Footer and Postscript sections.
+A drawback of ORC was that it was designed specifically for Hive, and was not a general-purpose storage format that can be used with non-Hive MapReduce interfaces such as Java. However now lot of these shortcomings are covered now.
+
+How  orc file is read internally?
+step 1: It check header  is there "ORC" written.
+step 2: If ORC in header then go to postscript where encoding info is stored. 
+	   Based on encoding decrypt(un-encode/uncompress) the file footer.
+step 3: read the file footer and get to know what is stored in which stripe and go to that stripe. 
+
+
+================================================================================================
+Key Takeaways from orc file format is
+	1. column based
+	2. The data is store in a very strorage efficent way. Because of lot of encodings.
+	3. Very well suited with Hive.
+	4. The predicates ( filter conditions ) are pushed at the storage level so we have to read less.
+	5. Schema Evolution its kind of okay. ( protocol buffers only )
+
+=====================================================================================================================
+
+
+Parquet File format 
+
+1. columnar file format
+2. read fast
+3. write slow
+4. It very good for handling nested data.
+5. parquet shares many design goals  with orc.
+6. It is more general purpose than orc and like avro
+7. compression is effienct because of varirous encoding and compression  like orc but not that much.
+8. It store meta data at end of the file so it is called as self describring.
+9. It support schema evalution to some extend.adding and deleting column only from end.
+10. Splittable
+
+
+structure
+1. header:
+	it contain text "par1"
+2. Row group
+	column chunk --> pages
+	each column chunk is configurable.
+3. Tail :
+	It consist of 3 part:-
+		a. file meta
+		b. Footer - length of file metadata
+		c. magic number "par1"
+
+
+Key Takeaway
+
+	1. Generic file format & column based
+	2. Faster read  slower write
+	3. It is quite general
+	4. the compression is efficient
+	5. support schema evolution to some extened.
+	6. based suited for nested struture.
+	7. Spittable. 
+
+
+
+A generic column-oriented storage format based on Google’s Dremel. Especially good at handling deeply nested data. 
+Parquet shares many of the same design goals as ORC, but is intended to be a general-purpose storage format for Hadoop. 
+Similar to ORC files, Parquet allows for returning only required data fields, thereby reducing I/O and increasing performance. Provides efficient compression. 
+Stores full metadata at the end of files, so Parquet files are self-documenting. 
+Uses efficient and extensible encoding schemas—for example, bit-packaging/run length encoding (RLE)
+It is more efficient when you need to query a few columns from a table. It will read only the required columns since they are adjacent thus minimizing IO. 
+It handles nested data structures in a flat columnar format. This means that in a Parquet file format, even the nested fields can be read individually without the need to read all the fields in the nested structure. 
+To understand the Parquet file format in Hadoop you should be aware of the following termsRow group: A logical horizontal partitioning of the data into rows. A row group consists of a column chunk for each column in the dataset.
+
+
+------------------------------------------------------------------------------------------
+
 
 
 
@@ -141,48 +1418,101 @@
 
 
 ##########################################################################################################
+11  LECTURE 1 JUNE 
+
+
+Note :-  ORC,Avro,Parquet are container base file format.
+
+
+Hive Compression Technique
+==============================================
+
+compression will help you to save storage.
+Also it will help to process the data faster.
+It will reduce I/O cost.
+
+Compression & Uncompression comes with some cost in terms of time taken to compress  and time to taken to uncompress.
+When we compare it with I/O gains we can actually neglect this addtional time.
+
+==================================================================================================================================
+
+There are 4 compression Technique:
+1. Snappy
+2. lzo
+3. gzip
+4. bzip2
+
+Some of the compression codec are optimized for storge.
+Some of the compression codec are optimized for speed.
+
+Trade Off
+If we want more compreesion ratio then we have to spend more time on compression.
+
+1. Snappy
+	It is very fast compression codec
+	And in terms of compression it is not very good.
+	Optimized for speed not for storage.
+	It is not by default spittable.
+
+avro,parquet,orc - container based file format
+
+2. lzo
+	It optimized for speed like snappy.
+	It is by-default it spittable.
+
+3. gzip
+	It optimizsed for storage not for speed.
+	It will provide 2.5 times better compression than snappy.
+	It is not by default spittable.
+	
+4. bzip2
+	It is optimised for storage and it is very-very slow.
+	It is by-default it spittable.
+	It normally  compress 9% better than Gzip but it is 10 times slowe than gzip.
+	It is idally for archival purpose only.
+
+More compresion means fewer blocks. And that leds to fever task to process the data.So it will take more time to process same amount of data.
+
+consider you have 1 gb file before compression so task should be 8.
+But after compression if it is 200 mb than only 2 task will run and processing time will increase.
+	
+
+
+
+
+
+| File Format | Supports Compression | Recommended Codec      |
+| ----------- | -------------------- | ---------------------- |
+| Parquet     | Yes                  | Snappy (default), Gzip |
+| ORC         | Yes                  | Zlib, Snappy           |
+| Avro        | Yes                  | Snappy, Deflate        |
+
+
+| Codec      | Typical Compression Ratio | Example: 1 GB Uncompressed → | Notes                              |
+| ---------- | ------------------------- | ---------------------------- | ---------------------------------- |
+| **Gzip**   | **2.5x – 3.5x**           | \~300–400 MB                 | Best storage savings, but slow     |
+| **LZO**    | 1.5x – 2.5x               | \~400–600 MB                 | Faster than Gzip, less compression |
+| **Snappy** | **1.2x – 2x**             | \~500–800 MB                 | Very fast, low compression         |
+
+Protocol Buffers (Protobuf) is a language-neutral, platform-neutral, and efficient mechanism for serializing structured data — developed by Google.
+
+Think of it as a faster, smaller alternative to XML or JSON — but in a binary format, with a defined schema.
+
+
 
 
 
 
 ##########################################################################################################
+Assignment :-
+AQE
+architecture of parquet , orc
+Coalesce , Repartition
+shuffleing concept
 
+compression technique and implemention on minimum 2 Gb data file
 
-
-##########################################################################################################
-
-
-
-
-##########################################################################################################
-
-
-
-##########################################################################################################
-
-
-
-
-##########################################################################################################
-
-
-
-##########################################################################################################
-
-
-
-
-##########################################################################################################
-
-
-
-##########################################################################################################
-
-
-
-
-##########################################################################################################
-
+File format trade Off
 
 
 ##########################################################################################################
