@@ -426,14 +426,95 @@ SQL/DF → Parse (Unresolved LP) → Analyze (Catalog) → Optimized LP → Phys
 KEYWORDS: Predicate pushdown, projection pruning, cost-based optimization, whole-stage codegen, unresolved vs resolved plan
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+how to create dataframe in spark | Lec-10
+
+### DE Pipeline========
+
+Read→          Transform        --Write        ----BI/ML
+                 |    |
+       DataframeAPI / sparkSQL
+
+#### HOW TO CRETAE DF - IN SPARK  DFAPI IMP NOT SPARKSQL IN ABOVE TRANSFORM
+
+
+copy data in notepad ----> ctrl+h --- replace pipe with blank so u get data 
+ALT == [ress karun thev () all data la lavta yeto.
+
+data = [
+(1 , Raghav)
+(2, ram)
+]
+
+scehma = [id= num , name= string)
+
+df = spark.createDataframe(data=data, schema= schema)
+
+df.show
+
+
+
+# PRODUCTION METHOD (Reading from source)   --GPT
+df = spark.read.parquet("hdfs://path/to/data/")  # OR
+df = spark.sql("SELECT * FROM production_db.employee_table")  # OR
+df = spark.read.option("header", True).csv("s3://bucket/data.csv")
+-------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
+dataframe transformations in spark | Lec-11
+
+Schema = blueprint of table that tells you Column Name + DataType + Nullability + Constraints
+
+df.coloumn ----  give colomn name only
+df.printSchema()    ---   gives all-schema(column+ nullable)
+
+column = set  of expression on values
+
+#########     .select   --- to select column in 4 ways
+df.select("id")
+2-- df.select(col(id))
+3--df.select(df["id"])
+4--df.select(df.address)
+
+df.select("id").show()-- give that column with values
+||       col(id), col(age).show-- give multiple column with values
+||       (col( id  + 5))   .show()-- if u want to action on that column 
+                                  -- as id + 5 without col() not works
+||       (expr(id+5)).show        -- also do above task
+||       (expr("id" as emp_id))   -- rename colomn name
+||       (expr(concat("name"+"address")  -- combines 2 coluns names and values in 1 colomn
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
+dataframe transformations in spark | Lec-12
 
 
--------------------------------------------------------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------------------------------------------------------
+
+df.select(col("id").alias("emp_id")).show()  -- rename here like above but with alis not expr
+
+df.where(col("salary")>150000)).show()   -- where = filter
+df.filter(col("salary")>150000)).show()   -- where = filter
+df.filter(col(("salary")>150000)) and (col("age")<18)).show()   -- where = filter
+             (                  ) and (             )        -- keep in round bracket extra if we want use and
+
+================================================================================
+LIT - ADD CONSTANT COLUMN== Add a static value to every row in DataFrame
+
+
+
+USECASE 1: Add Load Date for Partitioning in prod
+
+COMMAND: df.select("*", lit("2026-06-02").alias("load_date"))
+
+INPUT:                        OUTPUT:
++--------+-------+           +--------+-------+-----------+
+| prod_id| amount|           | prod_id| amount| load_date |
++--------+-------+           +--------+-------+-----------+
+| 101    | 500   |           | 101    | 500   | 2026-06-02|
+| 102    | 300   |           | 102    | 300   | 2026-06-02|
++--------+-------+           +--------+-------+-----------+
+
+================================================================================
+
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
