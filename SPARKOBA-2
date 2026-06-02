@@ -574,7 +574,7 @@ df.filter(col(("salary")>150000)) and (col("age")<18)).show()   -- where = filte
              (                  ) and (             )        -- keep in round bracket extra if we want use and
 
 ================================================================================
- withColumn + lit - ADD CONSTANT COLUMN== Add a static value to every row in DataFrame
+ withColumn + lit - ADD CONSTANT COLUMN== Add/OVERWRITE static value to every row in DataFrame
 
 USECASE 1: Add Load Date for Partitioning in prod
 
@@ -598,11 +598,36 @@ MUST     | df.withColumn("date", lit(current_date())) | Add dynamic current date
 GOOD     | df.select("*", lit("v1").alias("c1"), lit("v2").alias("c2")) | Add 3+ columns   |
 AVOID    | df.select(lit("v").alias("c"))             | Loses original data (rarely needed)|
 
-================================================================================
+
 # Note: lit() required for constants; without it Spark treats value as column name
-------------------------------------------------------
+================================================================================
+withColumnRenamed ------ RENAME COLUMN NAME
+employee_df.withColumnRenamed("OLD_COL_NAME", "NEW_COL_NAME").show()
+
+employee_df.withColumnRenamed("id", "employee_id").show()
+                             
+================================================================================
+WITH COLUMN CAST - CHANGES DATA TYPE
+
+employee_df.withColumn("COL_NAME", col("COL_NAME").cast("string")).printSchema()
+                        COL_NAME        COL_NAME         NEW_DATA_TYPE    
+
+employee_df.withColumn("id", col("id").cast("string")).printSchema()
+Output:
+id: string (nullable = true)  <-- id: integer (nullable = true)
+================================================================================
 
 
+
+
+
+
+================================================================================
+
+
+
+
+================================================================================
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
 union vs unionAll | Lec-13 | spark interview questions
