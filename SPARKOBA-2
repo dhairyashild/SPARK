@@ -573,9 +573,34 @@ df.filter(col("salary")>150000)).show()   -- where = filter
 df.filter(col(("salary")>150000)) and (col("age")<18)).show()   -- where = filter
              (                  ) and (             )        -- keep in round bracket extra if we want use and
 
+================================================================================
+ withColumn + lit - ADD CONSTANT COLUMN== Add a static value to every row in DataFrame
 
+USECASE 1: Add Load Date for Partitioning in prod
 
+COMMAND: df.select("*", lit("2026-06-02").alias("load_date"))
+                                                     |
+INPUT:                        OUTPUT:                |
++--------+-------+           +--------+-------+-----------+
+| prod_id| amount|           | prod_id| amount| load_date |
++--------+-------+           +--------+-------+-----------+
+| 101    | 500   |           | 101    | 500   | 2026-06-02|
+| 102    | 300   |           | 102    | 300   | 2026-06-02|
++--------+-------+           +--------+-------+-----------+
 
+================================================================================
+PRODUCTION BEST PRACTICE - MUST REMEMBER
+
+Priority | Command                                    | Use Case                           |
+ --------|--------------------------------------------|----------------------------------- |
+MUST     | df.withColumn("col", lit("value"))         | Add 1 constant column daily in prod for partitopn |
+MUST     | df.withColumn("date", lit(current_date())) | Add dynamic current date           |
+GOOD     | df.select("*", lit("v1").alias("c1"), lit("v2").alias("c2")) | Add 3+ columns   |
+AVOID    | df.select(lit("v").alias("c"))             | Loses original data (rarely needed)|
+
+================================================================================
+# Note: lit() required for constants; without it Spark treats value as column name
+------------------------------------------------------
 
 
 ----------------------------------------------------------------------------------------------------------
