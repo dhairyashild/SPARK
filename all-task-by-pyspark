@@ -1,0 +1,214 @@
+# ==================== COMPLETE PySpark ETL PIPELINE ====================
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+from pyspark.sql.window import Window
+from pyspark.sql.types import *
+
+# Initialize Spark
+spark = SparkSession.builder.appName("ETL_Pipeline").getOrCreate()
+
+# ==================== 1. READ - Ingest raw data ====================
+# Read from various sources
+df = spark.read.parquet("s3://bucket/raw/")
+# df = spark.read.option("header", True).csv("s3://bucket/raw/")
+# df = spark.read.json("s3://bucket/raw/")
+# df = spark.read.format("jdbc").option("dbtable", "table").load()
+# df = spark.read.table("glue_catalog.database.table")
+
+# ==================== 2. CLEAN/TRANSFORM - Data quality & preparation ====================
+# Drop nulls and duplicates
+df = df.dropna().dropDuplicates()
+
+# Fill nulls with default values
+df = df.fillna({"col": 0, "name": "unknown", "date": "1900-01-01"})
+
+# Filter rows
+df = df.where("age > 18").filter("status == 'ACTIVE'")
+
+# Type casting
+df = df.withColumn("date", col("date_str").cast("date"))
+df = df.withColumn("amount", col("amount_str").cast("decimal(10,2)"))
+
+# Rename columns
+df = df.withColumnRenamed("old_name", "new_name")
+
+# Add/replace columns
+df = df.withColumn("full_name", concat(col("first_name"), lit(" "), col("last_name")))
+df = df.withColumn("year_month", date_format(col("date"), "yyyy-MM"))
+
+# String operations
+df = df.withColumn("clean_email", regexp_replace(col("email"), "@.*$", ""))
+df = df.withColumn("upper_name", upper(col("name")))
+df = df.withColumn("trimmed", trim(col("dirty_column")))
+
+# Remove columns
+df = df.drop("temp_col", "unused_col", "raw_json")
+
+# Conditional column creation
+df = df.withColumn("age_group", 
+    when(col("age") < 18, "Minor")
+    .when((col("age") >= 18) & (col("age") < 65), "Adult")
+    .otherwise("Senior"))
+
+# ==================== 3. ENRICH/JOIN - Combine datasets ====================
+# Joins
+enriched_df = df1.join(df2, df1["id"] == df2["id"], "inner")  # inner join
+enriched_df = df1.join(df2, ["common_key"], "left")            # left join
+enriched_df = df1.join(df2, ["key"], "right")                  # right join
+enriched_df = df1.join(df2, ["key"], "full")                   # full outer join
+
+# Broadcast join for small tables (performance optimization)
+from pyspark.sql.functions import broadcast
+enriched_df = df1.join(broadcast(small_df), "key", "left")
+
+# Crosswalk/lookup join
+enriched_df = df1.join(lookup_df, "product_code", "left")
+
+# Window functions for enrichment
+window_spec = Window.partitionBy("customer_id").orderBy("transaction_date")
+enriched_df = enriched_df.withColumn("prev_transaction", lag("amount").over(window_spec))
+enriched_df = enriched_df.withColumn("rank", rank().over(window_spec.orderBy(col("amount").desc())))
+
+# Complex enrichment
+enriched_df = enriched_df.withColumn("full_address", 
+    concat(col("address"), lit(", "), col("city"), lit(", "), col("zip")))
+
+# ==================== 4. AGGREGATE - Summarize & group ====================
+# Basic aggregations
+agg_df = df.groupBy("category", "region").agg(
+    count("*").alias("total_count"),
+    countDistinct("customer_id").alias("unique_customers"),
+    sum("amount").alias("total_revenue"),
+    avg("amount").alias("avg_amount"),
+    min("transaction_date").alias("first_transaction"),
+    max("transaction_date").alias("last_transaction"),
+    stddev("amount").alias("stddev_amount"),
+    collect_list("product").alias("product_list"),
+    collect_set("store_id").alias("unique_stores")
+)
+
+# Multiple aggregations with filtering
+agg_df = df.groupBy("category").agg(
+    sum(when(col("status") == "completed", col("amount")).otherwise(0)).alias("completed_revenue"),
+    sum(when(col("status") == "pending", col("amount")).otherwise(0)).alias("pending_revenue")
+)
+
+# Rollup for hierarchical aggregations
+agg_df = df.rollup("year", "month", "day").sum("sales")
+
+# Cube for all dimension combinations
+agg_df = df.cube("product", "region", "channel").avg("revenue")
+
+# Pivot (rows to columns)
+pivot_df = df.groupBy("customer_id").pivot("product_category").sum("purchase_amount")
+
+# Window aggregations (running totals, moving averages)
+window_agg = Window.partitionBy("customer_id").orderBy("transaction_date")
+agg_df = df.withColumn("running_total", sum("amount").over(window_agg))
+agg_df = df.withColumn("moving_avg_7d", avg("amount").over(window_agg.rowsBetween(-6, 0)))
+
+# Percentiles and ranking
+agg_df = df.withColumn("percentile_rank", percent_rank().over(window_agg.orderBy("amount")))
+
+# ==================== 5. WRITE - Save processed data ====================
+# Write to S3 as Parquet (recommended)
+agg_df.write.mode("overwrite").parquet("s3://bucket/processed/")
+
+# Write with partitioning
+agg_df.write.partitionBy("year", "month").mode("overwrite").parquet("s3://bucket/processed/")
+
+# Write as single file (coalesce for small data)
+agg_df.coalesce(1).write.mode("overwrite").csv("s3://bucket/output/", header=True)
+
+# Bucketing for optimization
+agg_df.write.bucketBy(10, "customer_id").sortBy("transaction_date").mode("overwrite").saveAsTable("database.bucketed_table")
+
+# Write to JDBC (RDS, Redshift, PostgreSQL)
+agg_df.write.format("jdbc") \
+    .option("url", "jdbc:postgresql://host:5432/database") \
+    .option("dbtable", "target_table") \
+    .option("user", "username") \
+    .option("password", "password") \
+    .mode("append") \
+    .save()
+
+# Write to Glue Data Catalog
+agg_df.write.format("parquet") \
+    .mode("overwrite") \
+    .option("path", "s3://bucket/warehouse/table/") \
+    .saveAsTable("glue_database.table_name")
+
+# Write with compression optimization
+agg_df.write.option("compression", "snappy") \
+    .mode("overwrite") \
+    .parquet("s3://bucket/optimized/")
+
+# Write as Delta Lake (ACID transactions)
+agg_df.write.format("delta") \
+    .mode("overwrite") \
+    .option("mergeSchema", "true") \
+    .save("s3://bucket/delta/table/")
+
+# Write as Iceberg
+agg_df.write.format("iceberg") \
+    .mode("append") \
+    .save("database.table")
+
+# ==================== 6. OPTIONAL: Intermediate checks ====================
+# Cache for reuse
+df.cache()
+df.count()  # Action to trigger caching
+
+# Temporary views for SQL queries
+df.createOrReplaceTempView("temp_table")
+sql_result = spark.sql("""
+    SELECT category, SUM(amount) as total 
+    FROM temp_table 
+    WHERE date > '2024-01-01' 
+    GROUP BY category
+""")
+
+# ==================== 7. OPTIONAL: Performance optimization ====================
+# Repartition for parallelism
+df = df.repartition(50, col("partition_key"))
+
+# Coalesce for reducing partitions (no shuffle)
+df = df.coalesce(10)
+
+# Hint for optimizations
+agg_df = agg_df.hint("broadcast") \
+    .join(other_df, "key", "inner")
+
+# ==================== COMPLETE END-TO-END EXAMPLE ====================
+# Read raw
+raw_df = spark.read.parquet("s3://raw/sales/")
+
+# Clean
+clean_df = raw_df.dropDuplicates(["order_id"]) \
+    .filter("order_status == 'completed'") \
+    .withColumn("order_date", col("timestamp").cast("date")) \
+    .drop("raw_timestamp", "temp_column")
+
+# Enrich
+enriched_df = clean_df.join(customers_df, "customer_id", "left") \
+    .join(broadcast(products_df), "product_id", "left") \
+    .withColumn("total_amount", col("quantity") * col("price")) \
+    .withColumn("customer_segment", 
+        when(col("total_spend") > 10000, "Premium")
+        .when(col("total_spend") > 5000, "Gold")
+        .otherwise("Standard"))
+
+# Aggregate
+daily_sales = enriched_df.groupBy("order_date", "category", "customer_segment").agg(
+    count("order_id").alias("order_count"),
+    sum("total_amount").alias("revenue"),
+    avg("quantity").alias("avg_items_per_order")
+)
+
+# Write
+daily_sales.write.mode("overwrite") \
+    .partitionBy("order_date") \
+    .parquet("s3://processed/daily_sales/")
+
+print("ETL Pipeline completed successfully!")
