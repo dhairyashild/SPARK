@@ -22,8 +22,8 @@ df.printSchema()    ---   gives all-schema(column+ nullable)
 column = set  of expression on values
 
 #########     .select   --- to select column in 4 ways
-df.select("id")
-2-- df.select(col(id))
+1--df.select(col(id))
+2--df.select("id") 
 3--df.select(df["id"])
 4--df.select(df.address)
 
