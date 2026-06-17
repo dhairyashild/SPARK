@@ -1,0 +1,52 @@
+
+# 🎯 REVISED STEPWISE PYSPARK LEARNING PATH (JOB-READY EXPEDITION)
+
+## 📌 PHASE 1: CORE OPTIMIZATION & THEORY (FINISH MANISH KUMAR)
+* **Instructor:** Manish Kumar | **Video Series:** PySpark Full Course 2025 (Zero to Job-Ready)
+* **Action:** Direct Jump to Lecture 16 to 27 (Skip first 15 as you already mastered up to Window Functions).
+* **Focus:** Spark UI, Memory Management, Shuffle Partitioning, Data Skewness, Adaptive Query Execution (AQE).
+* **Goal:** Secure the core optimization framework before deploying complex code on cloud clusters.
+* **Duration:** 3 - 5 Days.
+
+---
+
+## 📌 PHASE 2: CLOUD DEPLOYMENT & ETL PIPELINES (SOUMIL SHAH)
+* **Instructor:** Soumil Shah | **Video Series:** AWS Glue and Python (PySpark) for Beginners: The Ultimate Guide
+* **Action:** Complete Parts 1 to 4 to establish production pipeline mechanics.
+* **Focus:** AWS Glue Jobs, Triggers, Crawlers, Athena Integration, S3 Data Lakes, IAM Policies.
+* **Goal:** Transition local Spark scripts into automated cloud-native enterprise workflows.
+* **Duration:** 1 Week.
+
+---
+
+## 📌 PHASE 3: ENTERPRISE TASKS & CORPORATE EXPERIENCE (ANSH LAMBA)
+* **Instructor:** Ansh Lamba | **Video Series:** PySpark Real-Time Scenarios WITH Python [JOB READY]
+* **Action:** Code along and solve all General Real-World Corporate Work Scenarios.
+* **Focus:** Incremental Data Loading (CDC), JSON Flattening, Delta Lake Architecture, Merge/Upsert Operations.
+* **Goal:** Acquire practical, non-project-specific corporate experience to list directly on your resume.
+* **Duration:** 1 Week.
+
+---
+
+## 📌 PHASE 4: SENIOR-LEVEL INTERVIEW READY (ANSH LAMBA BONUS)
+* **Instructor:** Ansh Lamba | **Video Series:** Databricks X PySpark INTERVIEW QUESTIONS (2026 Guide)
+* **Action:** Deep-dive into Scenarios 1 to 5 with strict self-coding.
+* **Focus:** Real-time cluster error handling, Production debugging, Advanced performance tuning.
+* **Goal:** Crack senior data engineering technical rounds and manage live production issues confidently.
+* **Duration:** 3 - 5 Days.
+
+---
+
+## 🚀 CRITICAL EXECUTION SEQUENCE (THE FINAL ORDER)
+
+| Order | Phase Target | Source Instructor | Core Focus | Current Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Step 1** | **Advance & Optimization** | Manish Kumar (Lec 16+) | Spark UI & Memory Tuning | **NEXT TARGET** |
+| **Step 2** | **Cloud & ETL Integration** | Soumil Shah (Part 1-4) | AWS Glue & S3 Automation | **PENDING** |
+| **Step 3** | **Real-Time Work Tasks** | Ansh Lamba (Scenarios) | Incremental Loads & Upserts | **PENDING** |
+| **Step 4** | **Production Debugging** | Ansh Lamba (Interview) | Corporate Error Handling | **FINAL STEP** |
+
+
+
+
+
