@@ -38,6 +38,30 @@ df = spark.read.parquet("path/").select("col1")
 # Partition
 df.write.partitionBy("date").parquet("path/")
 
+---------------------------------
+# This code reads Parquet file metadata using pyarrow without loading data.
+# Useful for inspecting row groups, column statistics (min/max, null counts), etc.
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+# Open the Parquet file (path appears truncated – replace with valid path)
+parquet_file = pq.ParquetFile(r'C:\Users\nikita\Downloads\Spark-The-Definitive-Guide-mast...')
+
+# Print full metadata (schema, row groups, etc.)
+print(parquet_file.metadata)
+
+# Access first row group metadata
+print(parquet_file.metadata.row_group(0))
+
+# Access first column of first row group
+print(parquet_file.metadata.row_group(0).column(0))
+
+# Print statistics (min, max, null count) of that column
+print(parquet_file.metadata.row_group(0).column(0).statistics)
+
+-------------------------------------
+
 
 
 ## Interview Must-Know
