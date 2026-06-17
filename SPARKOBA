@@ -27,27 +27,11 @@ VOLUME
 
 Hadoop vs Spark | Lec-3 | In depth explanation
 
-┌─────────────────────────────┬─────────────────────────────┬─────────────────────────────┐
-│          HADOOP             │           SPARK             │        DIFFERENCE           │
-├─────────────────────────────┼─────────────────────────────┼─────────────────────────────┤
-│ PERFORMANCE                 │ PERFORMANCE                 │ PERFORMANCE                 │
-│ Hadoop is slower than Spark │ Spark is faster than Hadoop │ Spark 10-100x faster due to │
-│ because it writes data back │ because Spark does all      │ in-memory compute vs Hadoop │
-│ to disk and reads again     │ computation in memory       │ disk I/O for every stage    │
-│ from disk                   │                             │                             │
-├─────────────────────────────┼─────────────────────────────┼─────────────────────────────┤
-│ DISK                        │ DISK                        │ DISK                        │
-│ Heavy disk I/O for every    │ Minimal disk usage; only    │ Hadoop persists intermediate│
-│ MapReduce stage; data       │ spills to disk when memory  │ data to disk; Spark uses    │
-│ persisted to disk by default│ is insufficient             │ disk only as fallback       │
-├─────────────────────────────┼─────────────────────────────┼─────────────────────────────┤
-│ BATCH & STREAMING           │ BATCH & STREAMING           │ BATCH & STREAMING           │
-│ Batch-only natively; needs  │ Unified batch + streaming   │ Spark does both natively;   │
-│ external engines (Storm,    │ via Structured Streaming    │ Hadoop requires separate    │
-│ Flink, Kafka) for streaming │                             │ streaming engine           │
-├─────────────────────────────┼─────────────────────────────┼─────────────────────────────┤
-│ SECURITY                    │ SECURITY                    │ SECURITY                    │
-│ Mature: Kerberos, HDFS ACLs,│ Basic
+1. **Spark (in-memory, DAG)** is 10–100x faster than Hadoop (disk-based MapReduce).
+
+2. **Spark** does batch + streaming + ML (unified); Hadoop is batch-only.
+
+3. **Spark** supports Python/SQL (easy); Hadoop is Java-heavy (complex).
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -103,94 +87,67 @@ spark ecosystem | Lec - 4
 -------------------------------------------------------------------------------------------------------------------------------------------------
 Read data in spark | Lec-3 | Read modes in spark
 
+# PYSPARK DATAFRAME READER – SHORT NOTES
 
+---
 
-# PYSPARK DATAFRAME READER STRUCTURE
-
-## 1. THE CORE SYNTAX
+## 1. CORE SYNTAX
 spark.read \
   .format("file_type") \
   .option("key", "value") \
   .schema(defined_schema) \
-  .load("path/to/data")
+  .load("path")
 
-## PySpark: Reading Data (YOUR Notes Format)
+---
 
-**format(5)=CSV, JSON, JDBC/ODBC, Table, parquet
-**option(optional)= inferschema, mode, header
-**Schema(optional)= manual schema you can pass
-**Load(optional)=Path where our data is residing
+## 2. FORMAT (5 TYPES)
+- CSV   → spark.read.csv("path")
+- JSON  → spark.read.json("path")
+- Parquet → spark.read.parquet("path")
+- JDBC  → spark.read.jdbc(url, table)
+- Table → spark.sql("SELECT * FROM table")
 
-**CODE EXAMPLES**
+---
 
-# **format(5)
-spark.read.csv("path")           # CSV
-spark.read.json("path")          # JSON  
-spark.read.jdbc(url, table)      # JDBC
-spark.sql("SELECT * FROM table") # Table
-spark.read.parquet("path")       # Parquet
+## 3. COMMON OPTIONS
+- .option("header", "true")        → first row as column names
+- .option("inferSchema", "true")   → auto-detect data types
+- .option("mode", "PERMISSIVE")    → error handling (see below)
 
-# OPTIONS
-.option("inferSchema", "true")
-.option("header", "true") 
-.option("mode", "PERMISSIVE")
+---
 
-# MANUAL SCHEMA
-schema = StructType([...])
+## 4. MODE OPTIONS
+- PERMISSIVE     → set NULL for bad fields (default)
+- DROPMALFORMED  → skip bad rows
+- FAILFAST       → stop execution on error
+
+---
+
+## 5. MANUAL SCHEMA (Optional)
+from pyspark.sql.types import *
+schema = StructType([StructField("id", IntegerType(), True), ...])
 spark.read.schema(schema).csv("path")
-```
 
+---
 
-
-## DataFrame Reader API (YOUR Notes)
-
-**Dataframe Reader API--  how to access? → **spark.read**
-
-df = (spark.read
-    .format("CSV")           # 1. Format
-    .option("header", "true")     # 2. Header row
-    .option("inferSchema", "true") # 3. Auto types
-    .option("mode", "FAILFAST")   # 4. Error on bad data
-    .load("c:\\user\\download_data.csv"))  # 5. PATH
-```
-
-## Mode Options---
- Fail fest**  --fail execution if malformed record in dataset.
-Dropmal formed**  -- Drop the corrupted record
-Permissive**  -- Default → set null value to all corrupted fields
-
-**CODE**
-```python
-.option("mode", "FAILFAST")    # Stop + Error
-.option("mode", "DROPMALFORMED") # Skip bad rows  
-.option("mode", "PERMISSIVE")   # NULL bad fields (DEFAULT)
-```
-
-## CSV  == Comma separated value
-
-id,name,age,salary,address,nominee
-1,Manish,26,10000,Mumbai,Parent
-2,Pritam,22,20000,Delhi,Wife
-------------------------
-
-PRACTICAL
-
-1- DATABRICS LOG IN  ---> DATA  ----> UPLAOD FILE
-2- CREATE  --- > NOTEBOOK ---> CONNECT ---> MYCLUSTER(GRREN DOT) ----> 
-3- COMMAND ON NOTEBOOK
-
-spark
-
-## Flight DataFrame (YOUR Code Exactly)
-
-flight_df_header = (spark.read.format("csv")
-    .option("header", "true")                    # this gives header to o/p of command -->  flight_df_header.show(5)
-    .option("inferSchema", "true")               # if false int treat as string in above command o/p
+## 6. PRACTICAL EXAMPLE (Flight Data)
+flight_df = (spark.read.format("csv")
+    .option("header", "true")
+    .option("inferSchema", "true")
     .option("mode", "FAILFAST")
     .load("/FileStore/tables/flight_data.csv"))
+flight_df.show(5)
 
-flight_df_header.show(5)
-```
+---
+
+## 7. KEY TAKEAWAYS
+- spark.read = entry point
+- format() → file type
+- option() → config
+- schema() → manual type safety
+- load() → file path
+
+✅ Best Practice: use header=true & inferSchema=true for CSV.
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -284,19 +241,34 @@ employee_df = (spark.read.format("csv")
 
 employee_df.show(truncate=False)
 ---------------------------------
+# CORRUPTED RECORDS – REAL-TIME NOTES gpt
 
+1. CHECK BAD RECORDS DIRECTORY
 %fs
-
 ls /FileStore/tables/bad_records/20260329T033518/bad_records/
----------------------------------
-## Reading Bad Records (YOUR Code)
 
-# 1. Read saved bad records (JSON format)
+2. READ BAD RECORDS (JSON FORMAT)
 bad_data_df = spark.read.format("json").load("/FileStore/tables/bad_records/20260329T033518/bad_records/")
-
-# 2. Show bad records
 bad_data_df.show()
-```
+
+
+3. READ DATA WITH BAD RECORD HANDLING
+emp_schema = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True),
+    StructField("_bad_data", StringType(), True)   # Captures bad records
+])
+
+df = (spark.read.format("csv")
+    .option("header", "true")
+    .option("mode", "PERMISSIVE")
+    .schema(emp_schema)
+    .option("columnNameOfCorruptRecord", "_bad_data")
+    .option("badRecordsPath", "/path/to/bad_records/")
+    .load("/path/to/file.csv"))
+
+df.show(truncate=False)
+```---------------------------------
 
 **3. Schema of bad_data_df:**
 
