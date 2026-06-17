@@ -681,6 +681,19 @@ A: Matches by column name instead of position.
    Reorders columns automatically to align names
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
+How to write dataframe to disk in spark | Lec-8
+
+GPT ==
+**YES** – `df = spark.read...load()` saves data **INTO THE DATAFRAME** (memory).
+**WHY WRITE + SAVE IS DIFFERENT?**  
+- `df.write` = config only (no save).  
+- `df.write.save()` = saves data **TO STORAGE** (S3/DBFS/local disk).  
+- `df` itself is already in memory – you don't need to save it to use it again.  
+- `save()` is for **persisting to disk** – not for DataFrame usage.
+
+GPT - ONCE HE USDE DBUTILS AND ONCE %FS FOR LINUX GIVE 2 LINES DIFF
+- `%fs` → Databricks notebook magic command for filesystem operations (ls, mkdir, rm, etc.) – like Linux terminal.
+- `dbutils.fs` → Python function for programmatic filesystem operations (ls, cp, mv, put, etc.) – used inside code cells.
 
 
 
