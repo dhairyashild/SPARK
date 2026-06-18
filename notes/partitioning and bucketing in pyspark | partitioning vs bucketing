@@ -1,3 +1,28 @@
 ✅ **Partitioning** → `WHERE` filter साठी (फोल्डर-level skip).
 ✅ **Bucketing** → `JOIN` / `GROUP BY` साठी (shuffle कमी).
 ✅ **एकत्र वापरा** – प्रथम Partition (फिल्टर), नंतर Bucket (जॉइन).
+
+
+ID | NAME      | AGE  | SALARY    | COUNTRY | GENDER
+---|-----------|------|-----------|---------|-------
+1  | Manish    | 26.0 | 75000.0   | INDIA   | m
+2  | Nikita    | 23.0 | 100000.0  | USA     | f
+3  | Pritam    | 22.0 | 150000.0  | INDIA   | m
+4  | Prantosh  | 17.0 | 200000.0  | JAPAN   | m
+5  | Vikash    | 31.0 | 300000.0  | USA     | m
+6  | Rahul     | 55.0 | 300000.0  | USA     | m
+7  | Raju      | 67.0 | 540000.0  | USA     | m
+8  | Praveen   | 28.0 | 70000.0   | USA     | m
+9  | Dev       | 32.0 | 150000.0  | JAPAN   | m
+10 | Sherin    | 16.0 | 25000.0   | RUSSIA  | f
+11 | Ragu      | 17.0 | 35000.0   | INDIA   | f
+12 | Sweta     | 43.0 | 120000.0  | INDIA   | f
+13 | Raushan   | 48.0 | 650000.0  | USA     | m
+14 | Mukesh    | 36.0 | 95000.0   | RUSSIA  | m
+15 | Prakash   | 52.0 | 750000.0  | INDIA   | m
+16 | Anita     | 29.0 | 110000.0  | JAPAN   | f
+17 | Kiran     | 38.0 | 220000.0  | RUSSIA  | f
+18 | Sanjay    | 45.0 | 175000.0  | INDIA   | m
+
+
+
