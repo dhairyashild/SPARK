@@ -1,0 +1,3 @@
+✅ **Partitioning** → `WHERE` filter साठी (फोल्डर-level skip).
+✅ **Bucketing** → `JOIN` / `GROUP BY` साठी (shuffle कमी).
+✅ **एकत्र वापरा** – प्रथम Partition (फिल्टर), नंतर Bucket (जॉइन).
