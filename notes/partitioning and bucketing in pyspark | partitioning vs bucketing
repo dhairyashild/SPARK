@@ -26,3 +26,23 @@ ID | NAME      | AGE  | SALARY    | COUNTRY | GENDER
 
 
 
+=====================================================
+IMAGE 1 CODE (SINGLE COLUMN PARTITION)
+=====================================================
+df.write.format("csv")\
+    .option("header","true")\
+    .option("mode","overwrite")\
+    .option("path","/FileStore/tables/patition_by_address/")  # output folder; address-partitioned data saved here
+    .partitionBy("address")\
+    .save()
+
+
+=====================================================
+IMAGE 2 CODE (MULTI COLUMN PARTITION)
+=====================================================
+df.write.format("csv")\
+    .option("header","true")\
+    .option("mode","overwrite")\
+    .option("path","/FileStore/tables/patition_by_address/")  # output folder; address folder inside this gender folder saved here
+    .partitionBy("address","gender")\
+    .save()
