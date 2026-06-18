@@ -1,3 +1,21 @@
+##########################################################################################################
+df = spark.createDataframe(data=data, schema= schema)
+df.show
+
+df.coloumn ----  give colomn name only
+df.printSchema()    ---   gives all-schema(column+ nullable)
+df.select(col(id), col(age+5)).show
+
+df.select(col("id").alias("emp_id")).show()  -- rename here like above but with alis not expr
+
+df.where(col("salary")>150000)).show()   -- where = filter
+df.filter(col("salary")>150000)).show()  -- where = filter
+df.filter(col(("salary")>150000)) and (col("age")<18)).show()   -- where = filter
+
+
+
+
+##########################################################################################################
 how to create dataframe in spark | Lec-10
 
 data = [
@@ -43,16 +61,18 @@ dataframe transformations in spark | Lec-12
 df.select(col("id").alias("emp_id")).show()  -- rename here like above but with alis not expr
 
 df.where(col("salary")>150000)).show()   -- where = filter
-df.filter(col("salary")>150000)).show()   -- where = filter
+df.filter(col("salary")>150000)).show()  -- where = filter
 df.filter(col(("salary")>150000)) and (col("age")<18)).show()   -- where = filter
              (                  ) and (             )        -- keep in round bracket extra if we want use and
+
+IF 2 BRACKET NOT GIVEN THEN ERROR = Py4JException: Method and([class java.lang.Integer]) does not exist
 
 ================================================================================
  withColumn + lit - ADD CONSTANT COLUMN== Add/OVERWRITE static value to every row in DataFrame
 
-USECASE 1: Add Load Date for Partitioning in prod
+USECASE 1: Add Load Date COLUMN for Partitioning in prod
 
-COMMAND: df.select("*", lit("2026-06-02").alias("load_date"))
+df.select("*", lit("2026-06-02").alias("load_date"))
                                                      |
 INPUT:                        OUTPUT:                |
 +--------+-------+           +--------+-------+-----------+
@@ -63,23 +83,39 @@ INPUT:                        OUTPUT:                |
 +--------+-------+           +--------+-------+-----------+
 
 ================================================================================
-PRODUCTION BEST PRACTICE - MUST REMEMBER
-
-Priority | Command                                    | Use Case                           |
- --------|--------------------------------------------|----------------------------------- |
-MUST     | df.withColumn("col", lit("value"))         | Add 1 constant column daily in prod for partitopn |
-MUST     | df.withColumn("date", lit(current_date())) | Add dynamic current date           |
-GOOD     | df.select("*", lit("v1").alias("c1"), lit("v2").alias("c2")) | Add 3+ columns   |
-AVOID    | df.select(lit("v").alias("c"))             | Loses original data (rarely needed)|
+# ============================================
+# तुमचा प्रश्न: col().alias() ने withColumnRenamed() replace होतो का?
+# ============================================
 
 
-# Note: lit() required for constants; without it Spark treats value as column name
-================================================================================
-withColumnRenamed ------ RENAME COLUMN NAME
-employee_df.withColumnRenamed("OLD_COL_NAME", "NEW_COL_NAME").show()
+# 🔹 col().alias() --          #############  RENAME + ADD + CALCULATE एकत्र (DATA ENGINEER CHOICE)
+df.select(
+    col("id").alias("emp_id"),           # rename
+    col("name").alias("emp_name"),        # rename
+    (col("salary") * 1.2).alias("new_salary"),  # calculate + rename
+    lit("IT").alias("dept")              # add constant column
+).show()
+# ✅ एकाच select() मध्ये सगळं होतं -> withColumnRenamed() ची गरज नाही!
 
-employee_df.withColumnRenamed("id", "employee_id").show()
-                             
+# 🔹 withColumnRenamed() -- फक्त QUICK 1-2 rename (BEGINNER/SIMPLE CASE)
+df.withColumnRenamed("id", "emp_id").show()
+# ✅ सोपं, पण calculate/add एकत्र करता येत नाही
+
+# ❌ AVOID
+df.select("*", lit("2026-06-02").alias("load_date"))
+
+# ❌ AVOID (select - 3 columns एकत्र):
+df.select("*", lit("v1").alias("c1"), lit("v2").alias("c2"), lit("v3").alias("c3"))
+# का avoid? -> chain करणं कठीण, readable नाही
+# ============================================
+# 🔹 FINAL ANSWER (नेहमी लक्षात ठेवा):
+# ADD only              -> withColumn() + lit()    ✅ MUST
+# RENAME only (1-2)     -> withColumnRenamed()     ✅ QUICK
+# RENAME + ADD + CALC   -> col().alias()           ✅ BEST (DATA ENGINEER)
+# select("*", lit())    -> AVOID                  ❌
+
+# 👉 थोडक्यात: col().alias() सर्वात POWERFUL आहे,
+#    पण withColumnRenamed() quick simple rename साठी अजूनही वापरतात!
 ================================================================================
 WITH COLUMN CAST - CHANGES DATA TYPE
 
@@ -143,9 +179,12 @@ df1.union(df2).show()
 
 
 ================================================================================
+# 🔹 show() vs display() फरक (REAL-TIME):
+# show()    -> ✅ Standard PySpark, सगळीकडे चालतो (local, cloud, databricks)
+#              number देता येतो: show(5), show(10)
 
-
-
+# display() -> ✅ फक्त Databricks Notebook मध्ये चालतो
+#              number देता येत नाही
 ================================================================================
 
 
