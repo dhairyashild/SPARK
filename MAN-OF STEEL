@@ -25,14 +25,27 @@ Meeting Link Please
 
 **Q3: diff between RDD / DATAFRAME / DATASET**
 
-| RDD                | DATAFRAME          | DATASET            |
-|--------------------|--------------------|--------------------|
-| No schema          | Has schema         | Has schema         |
-| No optimization    | Catalyst optimizer | Catalyst + Tungsten|
-| Compile-time safety| Runtime safety     | Compile-time safety|
-| All languages      | All languages      | Java/Scala only    |
-| Low-level API      | High-level API     | Type-safe API      |
+| Feature          | RDD                   | DataFrame           | Dataset             |
+|------------------|------------------------|---------------------|---------------------|
+| API Level        | Low-level              | Mid-level           | High-level          |
+| Control          | Full Control           | Less Control        | Type-safe Control   |
+| Speed            | Slow                   | Fast                | Fast                |
+| Data Type        | Unstructured Data      | Semi-structured     | Structured + Semi   |
+| Language Support | Java/Scala/Python      | Java/Scala/Python   | Scala Only          |
 
+"Production मध्ये DataFrame वापरतो,
+ RDD फक्त custom logic साठी,
+ Dataset Scala projects साठी."
+
+1. Catalyst Optimizer → DataFrame/Dataset ला
+   automatic query optimization मिळतो, RDD ला नाही
+
+2. DataFrame = Dataset[Row] internally → same performance
+
+4. PySpark मध्ये Dataset नाही →  Python type system mismatch मुळे
+
+5. Tungsten Engine →
+   DataFrame/Dataset ला memory + CPU optimization
 ---
 
 **Q4: What is Transformation?**
@@ -76,14 +89,11 @@ Meeting Link Please
 
 ---
 
-**Q8: what is lazy evaluation?**
+⚡ LAZY EVALUATION - ENGLISH NOTES
 
-| LAZY EVALUATION     | DETAILS                                                                 |
-|--------------------|-------------------------------------------------------------------------|
-| Definition         | Transformations are NOT executed immediately                           |
-| Execution Trigger  | Executes only when an Action is called                                 |
-| Benefits           | Optimizes execution plan, reduces unnecessary computation              |
-| How it works       | Builds DAG of transformations → executes at Action time                |
+Definition  = Transformations do NOT execute immediately
+Trigger     = Execution happens ONLY when Action is called
+How         = Builds DAG → Optimizes Plan → Executes at Action
 
 ---
 
@@ -132,17 +142,6 @@ Spark works with most all data storage systems.
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------
-
-Why Apache spark | Lec-2
-
-
--- BIG DATA PROB =3V
-VELOCITY
-VARIETY
-VOLUME
-
-
-
 architecture of Spark
 Driver Executor
 Lazy Evaluation
@@ -151,6 +150,112 @@ write a code in rdd for word count. (Python)
 SparkSession SparkContext
 DAG --> Job --> Stage --> Task
 
+
+╔══════════════════════════════════════════════════════════════════╗
+║              APACHE SPARK – CORE INTERVIEW NOTES                 ║
+╚══════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 1. SPARK ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Master-Slave architecture.
+- Components: Driver → Cluster Manager → Executors
+- Cluster Managers: YARN | Kubernetes | Mesos | Standalone
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 2. DRIVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Brain of Spark app. Runs main() function.
+- Creates SparkSession / SparkContext.
+- Builds DAG → breaks into Stages → sends Tasks to Executors.
+- Collects final results.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 3. EXECUTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Worker process on each node.
+- Runs Tasks, stores cached data (memory/disk).
+- Sends results back to Driver.
+- Each app gets its OWN executors (isolation).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 4. LAZY EVALUATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Transformations → NOT executed immediately.
+- Spark just records them in a DAG.
+- Executes ONLY when Action is called.
+  → Actions: count(), collect(), show(), write()
+- Benefit: Catalyst Optimizer tunes the full plan first.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 5. LINEAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Complete history of transformations on an RDD/DataFrame.
+- Fault Tolerance: lost partition → recomputed from lineage.
+- No data replication needed (unlike Hadoop).
+- Stored as a DAG of dependencies.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 6. DAG → JOB → STAGE → TASK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ DAG   → Full logical execution plan of transformations.
+ JOB   → Created per Action call (1 action = 1 job).
+ STAGE → DAG split at wide transformation (shuffle boundary).
+ TASK  → Smallest unit. 1 Task = 1 Partition processed.
+
+ Flow:
+ Action called
+     → 1 JOB created
+         → split into STAGES (at shuffle points)
+             → each Stage has N TASKS (N = partitions)
+                 → Tasks sent to Executors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 7. SparkContext vs SparkSession
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SparkContext  → Entry point for RDD API (Spark 1.x).
+               → Only 1 allowed per JVM.
+               → Low-level API.
+
+ SparkSession → Entry point for DataFrame/Dataset/SQL (Spark 2.x+).
+              → Internally contains SparkContext.
+              → Use THIS in all modern Spark code.
+
+ spark = SparkSession.builder.appName("app").getOrCreate()
+ sc    = spark.sparkContext   # access SparkContext from session
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 8. RDD WORD COUNT (Python)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from pyspark import SparkContext
+
+sc = SparkContext("local", "WordCount")
+
+rdd = sc.textFile("data.txt")
+
+word_count = (
+    rdd
+    .flatMap(lambda line: line.split(" "))   # split lines → words
+    .map(lambda word: (word, 1))             # word → (word, 1)
+    .reduceByKey(lambda a, b: a + b)         # sum counts per word
+)
+
+word_count.collect()  # ACTION → triggers execution
+
+# Output: [('hello', 3), ('spark', 2), ...]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ KEY POINTS TO SAY IN INTERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ✔ Driver = brain | Executor = worker.
+ ✔ Lazy eval = no execution until action.
+ ✔ Lineage = fault tolerance without replication.
+ ✔ 1 Action = 1 Job → split into Stages → Tasks per partition.
+ ✔ Always use SparkSession in modern Spark (2.x+).
+ ✔ flatMap breaks lines → words | reduceByKey aggregates.
+
+##########################################################################################################
 Difference between rdd, dataframe & dataset.
 how create sparkSession.
 Spark configuration propery.
