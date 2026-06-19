@@ -1,0 +1,449 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           APACHE SPARK – COMPLETE INTERVIEW NOTES               ║
+╚══════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 1. WHAT IS SPARK?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Distributed in-memory computing engine for large-scale data processing.
+- Connects with HDFS, JDBC/ODBC, Azure, S3, GCS, MongoDB etc.
+- Solves Hadoop's disk I/O problem (MapReduce writes to disk after every step).
+- Unified engine: Batch + Streaming + SQL + ML + Graph.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 2. SPARK ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Master-Slave architecture.
+- Flow: Driver → Cluster Manager → Executors
+- Cluster Managers: YARN | Kubernetes | Mesos | Standalone
+
+ DRIVER (Master/Brain)
+  - Runs main() | Creates SparkSession/SparkContext.
+  - Builds DAG → splits into Stages → sends Tasks to Executors.
+  - Collects final results.
+
+ EXECUTOR (Worker)
+  - Worker process on each node.
+  - Runs Tasks, stores cached data (memory/disk).
+  - Sends results back to Driver.
+  - Each app gets its OWN executors (isolation).
+
+ PARTITION
+  - Data split into chunks across nodes (default 128MB per partition).
+  - 1 Task = 1 Partition.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 3. MapReduce vs SPARK vs PANDAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MapReduce   → Disk-based | Slow iterative | Batch only
+ Spark       → In-memory  | 100x faster   | Unified engine
+ Pandas      → Single machine only | GB-scale | No fault tolerance
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 4. RDD vs DATAFRAME vs DATASET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ RDD       → Low-level | Full control | No Catalyst | Unstructured data
+ DataFrame → Mid-level | Catalyst optimized | Schema-based | Fast
+ Dataset   → High-level | Type-safe | Scala only | Catalyst + Tungsten
+
+ KEY POINTS:
+  - Catalyst Optimizer → only for DataFrame/Dataset (NOT RDD).
+  - Tungsten Engine    → memory + CPU optimization for DataFrame/Dataset.
+  - DataFrame = Dataset[Row] internally → same performance.
+  - PySpark has NO Dataset → Python type system mismatch.
+  - In Spark 2.x → DataFrame & Dataset merged into Structured API.
+  - df.rdd conversion → loses Catalyst optimization.
+
+ PRODUCTION RULE:
+  ✔ DataFrame → production use
+  ✔ RDD       → custom low-level logic only
+  ✔ Dataset   → Scala projects only
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 5. LAZY EVALUATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Transformations → NOT executed immediately.
+- Spark builds a DAG of operations.
+- Executes ONLY when Action is called.
+  → Actions: count(), collect(), show(), write(), save()
+- Benefit: Catalyst Optimizer tunes full plan BEFORE execution.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 6. TRANSFORMATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ NARROW (no shuffle → FAST)
+  - Each partition → one output partition independently.
+  - Examples: map(), filter(), select(), union()
+
+ WIDE (shuffle required → SLOW)
+  - Data moves ACROSS partitions/nodes via network.
+  - Examples: groupBy(), join(), sort(), distinct(), repartition()
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 7. LINEAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Complete history (DAG) of transformations on RDD/DataFrame.
+- Immutable + Lineage = RESILIENT (fault tolerant).
+- Lost partition → recomputed from lineage (no replication needed).
+- rdd.toDebugString() → view lineage graph (read bottom to top).
+
+ Lineage Example:
+  rdd1 = read csv
+  rdd2 = filter
+  rdd3 = join
+  rdd4 = save to disk  ← ACTION triggers all above
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 8. DAG → JOB → STAGE → TASK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ DAG   → Full logical execution plan.
+ JOB   → 1 Action = 1 Job.
+ STAGE → Split at Wide Transformation (shuffle boundary).
+ TASK  → Smallest unit. 1 Task = 1 Partition.
+
+ Flow:
+  Action called
+    → 1 JOB created
+        → split into STAGES (at shuffle points)
+            → each Stage → N TASKS (N = partitions)
+                → Tasks sent to Executors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 9. SparkContext vs SparkSession
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SparkContext  → Spark 1.x | RDD API only | 1 per JVM | Low-level
+ SparkSession → Spark 2.x+ | Unified entry point | Contains SparkContext
+             → Combines: SparkContext + SQLContext + HiveContext
+             → Gives: Catalyst Optimizer benefits
+
+# SparkContext
+ from pyspark import SparkContext, SparkConf
+ conf = SparkConf().setAppName("app")
+ sc = SparkContext(conf=conf)
+
+# SparkSession (use this always)
+ from pyspark.sql import SparkSession
+ spark = SparkSession.builder \
+     .appName("app") \
+     .config("spark.executor.memory", "4g") \
+     .config("spark.executor.cores", 3) \
+     .config("spark.executor.instances", 3) \
+     .getOrCreate()
+
+ sc = spark.sparkContext  # access SparkContext from session
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 10. SPARK DEPLOYMENT MODES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Client Mode  → Driver on client machine | Interactive/notebooks
+              → If client fails → Job fails
+              spark-submit --master yarn --deploy-mode client app.py
+
+ Cluster Mode → Driver on cluster node | Production/batch jobs
+              → Fault-tolerant after submission
+              spark-submit --master yarn --deploy-mode cluster app.py
+
+ Local Mode   → Driver + Executor on same machine | Dev/testing
+              → local[*] = all cores | local[4] = 4 threads
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 11. RDD WORD COUNT (Python)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ from pyspark import SparkContext
+ sc = SparkContext("local", "WordCount")
+
+ word_count = (
+     sc.textFile("data.txt")
+     .flatMap(lambda line: line.split(" "))  # lines → words
+     .map(lambda word: (word, 1))            # word → (word,1)
+     .reduceByKey(lambda a, b: a + b)        # aggregate counts
+ )
+ word_count.collect()  # ACTION → triggers execution
+ # Output: [('hello', 3), ('spark', 2)]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 12. READING DATA IN SPARK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CSV
+ df = (spark.read
+     .option("header", "true")
+     .option("inferSchema", "true")   # NOT for production
+     .option("sep", "|")
+     .option("mode", "DROPMALFORMED")
+     .csv("hdfs://path/file.csv"))
+
+# Read Modes:
+  PERMISSIVE    → NULL for corrupt fields, adds _corrupt_record column (default)
+  DROPMALFORMED → Ignores corrupt records
+  FAILFAST      → Throws exception on corrupt record
+
+# Schema Options:
+  1. INFER    → inferSchema=true (reads N records first → slow, avoid in prod)
+  2. IMPLICIT → Parquet/Avro carry schema in file
+  3. EXPLICIT → Define manually (BEST for production)
+
+# Explicit Schema - Programmatic
+ from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+ schema = StructType([
+     StructField("id",   IntegerType(), True),
+     StructField("name", StringType(),  True)
+ ])
+ df = spark.read.schema(schema).csv("path", header=True)
+
+# Explicit Schema - DDL (simpler)
+ schema = "id INT, name STRING, salary DOUBLE"
+ df = spark.read.schema(schema).csv("path", header=True)
+
+# Parquet (schema embedded in file)
+ df = spark.read.option("mergeSchema","true").parquet("path/")
+
+# JDBC
+ df = spark.read.jdbc(
+     url="jdbc:mysql://localhost:3306/mydb",
+     table="employee",
+     properties={"user":"root","password":"pwd",
+                 "driver":"com.mysql.cj.jdbc.Driver"})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 13. WRITING DATA IN SPARK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ df.write.format("parquet").mode("overwrite").save("path")
+
+# Write Modes:
+  overwrite → Replace existing data
+  append    → Add to existing data
+  ignore    → Skip if path exists
+  error     → Fail if path exists (default)
+
+# File Layout Controls:
+  repartition(10)           → increase partitions (full shuffle)
+  coalesce(1)               → reduce partitions (no shuffle)
+  partitionBy("year","month") → folder-based partitioning (like Hive)
+  bucketBy(4,"id")          → bucket into N files per partition
+  sortBy("name")            → sort within buckets
+  maxRecordsPerFile(10000)  → control records per file
+
+ NOTE: Number of output files = Number of partitions in DataFrame.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 14. SPARK SQL & TEMP VIEWS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Session-scoped view (one SparkSession)
+ df.createOrReplaceTempView("people")
+ spark.sql("SELECT * FROM people WHERE age > 25").show()
+
+# App-scoped view (across all SparkSessions)
+ df.createOrReplaceGlobalTempView("people")
+ spark.sql("SELECT * FROM global_temp.people").show()
+
+# Column Reference Methods:
+ df.select("name", "age")                        # string
+ df.select(col("name"), col("age"))              # col object
+ df.selectExpr("age + 10 as new_age")            # SQL expression
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 15. JOINS IN SPARK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ df1.join(df2, df1.id == df2.id, "inner")
+
+# Join Types:
+  inner | left/left_outer | right/right_outer
+  full  | left_semi (no right cols) | left_anti | cross
+
+# Ambiguity Fix:
+  .withColumnRenamed("old","new")   # rename before join
+  .drop(df2["id"])                  # drop after join
+
+# Null Handling:
+  .withColumn("col", expr("coalesce(order_id, -1)"))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 16. JOIN STRATEGIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Broadcast Hash Join
+  - Small table (<10MB default) broadcast to all executors.
+  - FASTEST join. No shuffle needed.
+  - Threshold: spark.sql.autoBroadcastJoinThreshold (default 10MB)
+  from pyspark.sql.functions import broadcast
+  df1.join(broadcast(df2), "id", "inner")
+
+ Shuffle Hash Join
+  - Both tables large → hash partition both → create hash table.
+  - Expensive (shuffle + hashing).
+  - Use if data distributed uniformly, no skew.
+  df1.join(df2.hint("shuffle_hash"), df1.id == df2.id, "inner")
+
+ Sort Merge Join (DEFAULT for large tables)
+  - Shuffle → Sort → Merge.
+  - Best for large equi-joins consistently.
+  - No hint needed (Spark auto-selects).
+
+ Cartesian Join
+  - Every row × every row. VERY expensive. Avoid.
+  - Non-equi join, no condition needed.
+
+ Broadcast Nested Loop Join
+  - Non-equi join with small table broadcastable.
+  df1.join(broadcast(df2), df1.id > df2.id, "inner")
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 17. CACHE & PERSIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Use when same RDD/DataFrame reused multiple times.
+- Without cache → Spark recomputes from scratch every Action.
+
+ cache()   = persist(MEMORY_ONLY) → stores as Java objects in RAM.
+
+ Storage Levels:
+  MEMORY_ONLY       → RAM only | Objects | Fast | More space
+  MEMORY_AND_DISK   → RAM first, evict to disk if full (LRU eviction)
+  DISK_ONLY         → Disk only | Serialized | Saves RAM
+  MEMORY_ONLY_SER   → RAM | Serialized (smaller footprint, slower read)
+  MEMORY_ONLY_2     → 2 replicas on 2 different nodes (fault tolerant)
+  OFF_HEAP          → Outside JVM | No GC overhead | Unsafe
+
+ KEY POINTS:
+  - Serialized → less memory, more CPU cost.
+  - cache() with data > memory → no error, but no caching (silent skip).
+  - unpersist() to free memory when done.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 18. CATALYST OPTIMIZER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Automatic query optimization engine for DataFrame/Dataset.
+- NOT available for RDD.
+
+ Steps:
+  1. Unresolved Logical Plan   → user code parsed (columns unvalidated)
+  2. Resolved Logical Plan     → validated with schema + catalog
+  3. Optimized Logical Plan    → rules applied (RBO)
+  4. Physical Plans Generated  → multiple execution strategies
+  5. Cost-Based Optimization   → best plan selected (CBO)
+  6. Execution                 → converted to RDD ops, run on executors
+
+ Key Optimization Rules:
+  - Predicate Pushdown   → filters moved closer to data source
+  - Projection Pruning   → remove unused columns
+  - Constant Folding     → precompute constant expressions
+  - Join Reordering      → optimize join sequence
+  - Eliminate No-Ops     → remove redundant transformations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 19. SPARK EXECUTOR MEMORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ spark.executor.memory = 10GB → actual cluster request = 11GB (+10% overhead)
+
+ Memory Layout:
+ ┌─────────────────────────────────────────┐
+ │  Memory Overhead (~10% / min 384MB)     │  ← PySpark workers, native
+ ├─────────────────────────────────────────┤
+ │  Reserved Memory (300MB fixed)          │  ← Spark internals
+ ├─────────────────────────────────────────┤
+ │  User Memory (~40%)                     │  ← UDFs, temp objects
+ ├─────────────────────────────────────────┤
+ │  Unified Memory (60%)                   │
+ │  ┌──────────────────────────────────┐   │
+ │  │ Execution Memory (50% of unified)│   │  ← shuffles, joins, sorts
+ │  ├──────────────────────────────────┤   │
+ │  │ Storage Memory  (50% of unified) │   │  ← cache, broadcast vars
+ │  └──────────────────────────────────┘   │
+ └─────────────────────────────────────────┘
+
+ KEY POINTS:
+  - Execution OOM → task FAILS (no eviction fallback).
+  - Storage OOM   → LRU cached blocks evicted (no failure).
+  - Execution can borrow from Storage if nothing cached (and vice versa).
+  - Shuffle-heavy → set spark.memory.storageFraction=0.2
+  - Cache-heavy   → set spark.memory.storageFraction=0.7
+  - Off-Heap      → outside JVM, no GC overhead, Tungsten-optimized.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 20. FILE FORMATS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ NOTE: Avro, ORC, Parquet are CONTAINER-BASED file formats (splittable + schema in metadata).
+
+ ROW-BASED: Read entire row even for 1 column → fast write, slow read.
+ COLUMN-BASED: Read only needed columns → fast read, slow write, better compression.
+
+ AVRO
+  - Row-based | Fast write | Slower column read.
+  - Schema stored in header as JSON | Data in binary.
+  - Best schema evolution (add/remove/rename columns).
+  - Language-agnostic (C, Python, Java, C++).
+  - Self-describing (schema + data together).
+  - Best for: Landing zone / ETL (read all columns).
+
+ ORC (Optimized Row Columnar)
+  - Column-based | Fast read | Slow write.
+  - Designed specifically for Hive.
+  - Encoding: Dictionary, Bit Packing, Delta, Run-Length Encoding.
+  - Predicate pushdown at storage level (reads less data).
+  - 3-level indexes: File → Stripe → Row Group.
+  - Structure: Header | Body (Stripes → Row Groups 10k rows) | Tail
+  - Default stripe size: 250MB.
+  - Schema evolution: supported (protocol buffers) but not as mature as Avro.
+  - Best for: Hive-heavy workloads.
+
+ PARQUET
+  - Column-based | Fast read | Slow write.
+  - General-purpose (not Hive-specific like ORC).
+  - Best for deeply nested data structures.
+  - Schema evolution: add/delete columns from END only.
+  - Self-describing (metadata at end of file).
+  - Structure: Header(par1) | Row Groups → Column Chunks → Pages | Tail
+  - Best for: Spark + nested data + general use.
+
+ FILE FORMAT TRADE-OFF SUMMARY:
+ ┌──────────┬────────┬───────┬────────────────┬──────────────────┐
+ │ Format   │ Type   │ Read  │ Schema Evolve  │ Best Use         │
+ ├──────────┼────────┼───────┼────────────────┼──────────────────┤
+ │ CSV/JSON │ Row    │ Slow  │ No             │ Raw/human readable│
+ │ Avro     │ Row    │ Medium│ BEST           │ Landing zone/ETL │
+ │ ORC      │ Column │ Fast  │ OK             │ Hive workloads   │
+ │ Parquet  │ Column │ Fast  │ Limited        │ Spark/nested data│
+ └──────────┴────────┴───────┴────────────────┴──────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 21. COMPRESSION TECHNIQUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Trade-off: More compression = more CPU time but less I/O cost.
+
+ ┌─────────┬───────────────┬──────────┬───────────┬──────────────────────┐
+ │ Codec   │ Compress Ratio│ Speed    │ Splittable│ Use Case             │
+ ├─────────┼───────────────┼──────────┼───────────┼──────────────────────┤
+ │ Snappy  │ 1.2x–2x (low) │ FASTEST  │ No        │ General Spark use    │
+ │ LZO     │ 1.5x–2.5x     │ Fast     │ YES       │ Speed + splittable   │
+ │ Gzip    │ 2.5x–3.5x     │ Slow     │ No        │ Storage savings      │
+ │ Bzip2   │ ~9% > Gzip    │ SLOWEST  │ YES       │ Archival only        │
+ └─────────┴───────────────┴──────────┴───────────┴──────────────────────┘
+
+ IMPORTANT: Container formats (Avro, ORC, Parquet) = splittable regardless of codec.
+ NOTE: More compression → fewer blocks → fewer tasks → SLOWER processing.
+
+ ┌──────────┬──────────────────────────────┐
+ │ Format   │ Recommended Codec            │
+ ├──────────┼──────────────────────────────┤
+ │ Parquet  │ Snappy (default), Gzip       │
+ │ ORC      │ Zlib, Snappy                 │
+ │ Avro     │ Snappy, Deflate              │
+ └──────────┴──────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ KEY INTERVIEW POINTS – QUICK FIRE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ✔ Driver = brain | Executor = worker.
+ ✔ Lazy eval = no execution until action triggered.
+ ✔ Lineage = fault tolerance WITHOUT data replication.
+ ✔ Immutable + Lineage = RESILIENT (RDD full form meaning).
+ ✔ 1 Action = 1 Job → Stages (at shuffle) → Tasks (per partition).
+ ✔ Wide transformation = shuffle = expensive = new Stage.
+ ✔ Always use SparkSession (Spark 2.x+), never SparkContext directly.
+ ✔ Catalyst Optimizer only works on DataFrame/Dataset, NOT RDD.
+ ✔ cache() = MEMORY_ONLY | persist() = choose your storage level.
+ ✔ Broadcast join = fastest | Sort Merge = default for large tables.
+ ✔ Parquet = best for Spark | ORC = best for Hive | Avro = best for ETL.
+ ✔ Snappy = fast but low compression | Gzip = slow but high compression.
+ ✔ inferSchema = NOT for production (use explicit schema).
+ ✔ coalesce = reduce partitions (no shuffle) | repartition = increase (shuffle).
+ ✔ Execution OOM = task fails | Storage OOM = LRU eviction (no failure).
