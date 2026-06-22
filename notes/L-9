@@ -1,0 +1,76 @@
+Note :-  ORC,Avro,Parquet are container base file format.
+
+
+Hive Compression Technique
+==============================================
+
+compression will help you to save storage.
+Also it will help to process the data faster.
+It will reduce I/O cost.
+
+Compression & Uncompression comes with some cost in terms of time taken to compress  and time to taken to uncompress.
+When we compare it with I/O gains we can actually neglect this addtional time.
+
+==================================================================================================================================
+
+There are 4 compression Technique:
+1. Snappy
+2. lzo
+3. gzip
+4. bzip2
+
+Some of the compression codec are optimized for storge.
+Some of the compression codec are optimized for speed.
+
+Trade Off
+If we want more compreesion ratio then we have to spend more time on compression.
+
+1. Snappy
+	It is very fast compression codec
+	And in terms of compression it is not very good.
+	Optimized for speed not for storage.
+	It is not by default spittable.
+
+avro,parquet,orc - container based file format
+
+2. lzo
+	It optimized for speed like snappy.
+	It is by-default it spittable.
+
+3. gzip
+	It optimizsed for storage not for speed.
+	It will provide 2.5 times better compression than snappy.
+	It is not by default spittable.
+	
+4. bzip2
+	It is optimised for storage and it is very-very slow.
+	It is by-default it spittable.
+	It normally  compress 9% better than Gzip but it is 10 times slowe than gzip.
+	It is idally for archival purpose only.
+
+More compresion means fewer blocks. And that leds to fever task to process the data.So it will take more time to process same amount of data.
+
+consider you have 1 gb file before compression so task should be 8.
+But after compression if it is 200 mb than only 2 task will run and processing time will increase.
+	
+
+
+
+
+
+| File Format | Supports Compression | Recommended Codec      |
+| ----------- | -------------------- | ---------------------- |
+| Parquet     | Yes                  | Snappy (default), Gzip |
+| ORC         | Yes                  | Zlib, Snappy           |
+| Avro        | Yes                  | Snappy, Deflate        |
+
+
+| Codec      | Typical Compression Ratio | Example: 1 GB Uncompressed → | Notes                              |
+| ---------- | ------------------------- | ---------------------------- | ---------------------------------- |
+| **Gzip**   | **2.5x – 3.5x**           | \~300–400 MB                 | Best storage savings, but slow     |
+| **LZO**    | 1.5x – 2.5x               | \~400–600 MB                 | Faster than Gzip, less compression |
+| **Snappy** | **1.2x – 2x**             | \~500–800 MB                 | Very fast, low compression         |
+
+Protocol Buffers (Protobuf) is a language-neutral, platform-neutral, and efficient mechanism for serializing structured data — developed by Google.
+
+Think of it as a faster, smaller alternative to XML or JSON — but in a binary format, with a defined schema.
