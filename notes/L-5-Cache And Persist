@@ -1,0 +1,74 @@
+
+Cache And Persist
+==================
+
+Cache And Persist both have same purpose.
+If we want to reuse the results of existing rdd then you can use then.
+It will speed up the apllication by using same rdd or not computing every time.
+An rdd that is not cached is re-evalutated again each time an action is invoked.
+
+The difference between cache and persist.
+cache will cache the rdd in memory.
+
+persist comes with various storage levels.
+	DISK_ONLY :- 
+		Data is stored in Disk. 
+		It is in serialized format. (In the form of Bytes )
+		It takes less space.
+
+	MEMORY_ONLY :- 
+		Data is stored in in-memory.
+		It is non-seialized format. (In the form of Object)
+		It takes more space.
+	
+	MEMORY_ONLY_2 :- 
+		This number 2 indicates 2 replias stored on 2 different workers nodes.
+		Replication is useful for speeding up recovery is case one node of the cluster fails.
+
+	MEMORY_ONLY_SER :-
+		To use serilized format we use MEMORY_ONLY_SER
+
+	MEMORY_AND_DISK :-
+		It stores the data in  non-serilized format by default.
+		Data is stored in in-memory, if enough memory is not available,evicted blocks from memory are stored in disk with serialized format (a.k.a eviction policy).
+		These mode of operation is recommanded when re-evaluion is expensive and memory rescourses are limited.
+
+		eviction policy :-
+			consider the situation that some of the block partitions are so large (skew) that they will quick fill up the storage memory used for cacheing.
+			when storage memory becomes full, an eviction policy will be used to make up the space for new blocks.
+			For these it will use LRU (Least Recently Used)
+
+	MEMORY_AND_DISK_SER :-
+			To use serilized format we use	MEMORY_AND_DISK_SER		
+
+	OFF_HEAP :-
+		Blocks are cached off-heap.
+		off-heap - outside the JVM
+		problem with stroging the object in jvm is that it uses gc for freeing up. GC to free up the space is time taking process.
+		OFF_HEAP is unsafe thing as we have to deal with raw memory outside your JVM.
+		It stores in serilzses format.
+
+Serialization increases the processing cost but reduce the memory foot print.
+In non-serialization processing is bit fast but it uses more memory foot print.
+
+Note :- 
+	1. If we don't mention the storage level in persist than it work as cache.
+	2. rdd.toDebugString is to check the lineage graph. And we need to read it from bottom to top.
+	3. If we are using MEMORY_ONLY or cache() and our data is more than memory than it will not through any error but it will not persist any data and skip optimazation.
+
+==========================================================================================================================
+
+StorageLevel(True, False, False, False, 1)
+
+useMemory=True → stored in memory
+
+useDisk=False → not stored on disk
+
+deserialized=True → kept as Java objects
+
+replication=1 → single copy	
+
+
+
+
+df.persist(storageLevel=DISK_ONLY)
