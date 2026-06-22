@@ -1,0 +1,172 @@
+Reference Link :-
+    https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/spark_session.html
+
+
+Spark Deployment Modes ( where the Spark driver runs )   
+    Client Mode
+        Driver location: Runs on the machine submitting the Spark job (client).
+        Executors: Run on cluster nodes.
+        Use case: Interactive jobs (notebooks, Spark shell).
+        Pros: Immediate feedback for users, easy debugging.
+        Cons: If client machine fails, the job fails.
+
+        spark-submit --master yarn --deploy-mode client app.py
+
+
+    Cluster Mode
+        Driver location: Runs on a cluster node.
+        Executors: Run on other cluster nodes.
+        Use case: Batch jobs, production pipelines, long-running jobs.
+        Pros: Fault-tolerant, client machine not needed after submission.
+        Cons: Harder to debug; driver logs are on cluster node
+
+        spark-submit --master yarn --deploy-mode cluster app.py
+
+        spark = SparkSession.builder \
+                    .appName("ClusterModeExample") \
+                    .master("yarn") \
+                    .config("spark.submit.deployMode", "cluster") \
+                    .getOrCreate()
+
+
+
+    Local Mode    
+        Driver & Executors: Both run on the same machine.
+        Use case: Development, testing, and debugging small datasets.
+        Pros: Easy setup, fast startup, easy to debug.
+        Cons: Not scalable, limited by local machine resources.
+
+        Master URL examples:
+            local → single-threaded
+            local[4] → 4 threads
+            local[*] → all available cores    
+
+        from pyspark.sql import SparkSession
+
+        spark = SparkSession.builder \
+            .appName("LocalExample") \
+            .master("local[*]") \
+            .getOrCreate()
+
+
+
+=====================================================================================
+SPARK-SQL
+
+createOrReplaceTempView
+======================
+    1. It is used for create distributed table from spark daaframe.
+    2. After creating table we can perform all  the operation by writing sql query.
+        Ex. 
+            data = [(1, "Alice", 25), (2, "Bob", 30)]
+            columns = ["id", "name", "age"]
+            df = spark.createDataFrame(data, columns)
+
+            # Create a temporary view
+            df.createOrReplaceTempView("people")
+
+            # Query using Spark SQL
+            spark.sql("SELECT * FROM people WHERE age > 25").show()
+ 
+    3. If we want it accessible across multiple SparkSessions within the same app.
+        df.createOrReplaceGlobalTempView("people")
+        spark.sql("SELECT * FROM global_temp.people").show()
+
+        # First SparkSession
+        spark = SparkSession.builder.appName("App1").getOrCreate()
+        df.createOrReplaceGlobalTempView("people")
+
+        # Another SparkSession within the same application
+        spark2 = spark.newSession()
+        spark2.sql("SELECT * FROM global_temp.people").show()
+
+==================================================================================================================
+
+How to refer a column in dataframe/dataset.
+1. column string
+    read_csv.select("order_date","order_status").show() 
+
+2. column_object
+ from pyspark.sql.functions import col
+  read_csv.select(col("order_date"),col("order_status")).show()    
+
+3. SQL Style Expressions   
+    df.selectExpr("age + 10 as new_age", "upper(name) as name_upper").show()
+
+==================================================================================================================
+
+
+Join in dataframe.
+
+`.join keyword is used for joining the dataframe`
+
+.join - It will take 3 parameter.
+    leftDf.join(rightDf,condition,typeOfJoin)
+    
+    condition = on which colume we have join two df
+
+
+Types of joins
+    1. inner
+        df1.join(df2, df1.id == df2.id, "inner").select(col("id"))  --> id column is ambigus
+
+    2. left/left_outer
+        df1.join(df2, df1.id == df2.id, "left")
+
+    3. right/right_outer
+        df1.join(df2, df1.id == df2.id, "right")
+
+    4. Full Join
+        df1.join(df2, df1.id == df2.id, "full")
+
+    5. Left Semi Join ( does not include columns from the right DataFrame )
+        df1.join(df2, df1.id == df2.id, "left_semi")
+
+    6. Left Anti Join
+        df1.join(df2, df1.id == df2.id, "left_anti")
+
+    7. cross join
+        df1.crossJoin(df2)
+
+
+============================================================================================
+
+How to deals with ambiguty?
+This happen, when we try to select a column  name which is coming from 2 different  dataframe after join.
+soln :- 
+    There are two ways to handle these.
+        1. rename the ambigous column in one of the dataframe.( .withcolumnRename("oldname","newname") )
+        2. drop one of the column after join. (.drop(dataframe("column_name")))
+
+
+============================================================================================
+
+How to handles null?
+    problem statement.
+    =================
+        whenever order_id is null show -1.
+    soln
+    ====
+        we can you coalesce for these.
+        systax
+            .withColumn("col_name",expr("coalesce("orderid",-1)"))  
+
+    coalesce- it will print -1 insted of null. It is different from coalesce(1).
+
+========================================================================================================     
+
+
+Assigment
+    how to see spark-catalog.
+    Create dataframe from rdd.
+    Create dataframe from pandas dataframe.
+    Create Dataframe from sample data.
+    After creating dataframe apply  transformation  on it like. select, filter, count, min , max, groupBy.
+    Get familiar with show, collect, save, saveAsTable Actions.
+    Create Temp Table of Same dataframe and get familier with spark.sql("").
+    What is UDF. Create one Sample UDF.
+
+
+
+
+
