@@ -1,0 +1,118 @@
+In Spark, you can expect to encounter five primary types of joins:
+
+Broadcast Hash Join
+Shuffle Hash Join
+Sort Merge Join
+Cartesian Join
+Broadcast Nested Loop Join
+
+Broadcast Hash Join
+The Broadcast Hash Join is the speedster of Spark joins. As the name suggests, it occurs when one of the data frames or tables is broadcast to all the executor nodes. To make this happen, one side of the data must be small enough to fit entirely in memory. Initially, this table is stored on the Driver node and then broadcast to all the executor nodes.
+
+By default, Spark considers a table for broadcasting if it's under 10 MB in size. You can modify this configuration using the following command:
+
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", [your threshold in Bytes])
+
+spark automatically selects the Broadcast Hash Join when it encounters a smaller data side. To disable this automatic application, use the following configuration:
+
+spark.conf.set("spark.sql.autoBroadcastJoinThreshold", -1)
+Note: It is highly recommended not to disable this configuration as it is the most efficient method for joining small and large tables.
+
+Tips to make this join happen :
+
+It should be Equi join with one side being smaller
+Hint as broadcast join for one of the side.
+
+# Way to mention hint for Broadcast Join
+
+largeDF.join(smallDF.hint("broadcast"),largeDF.joinkey == smallDF.joinkey,"inner")
+
+
+Sometimes, Spark may fail to detect the smaller table. In such cases, you can use hints to trigger the Broadcast Hash Join. But broadcasting a large data will lead to OOM issue. The Join side with the hint will be broadcasted irrespective of autoBroadcastJoinThreshold, if a broadcast hint is specified on either side of the join. 
+
+
+from pyspark.sql.functions import broadcast
+
+bhj = df1.join(broadcast(df2), "id", "inner")
+bhj.explain()
+
+-------------------------------------------------------
+
+Shuffle Hash Joins
+When both tables are large, getting the broadcast join may lead to out-of-memory issues. In that case, Shuffle Hash Join can be a better option. These are quite expensive compared to broadcast joins as they involve both shuffling of data and hashing.
+
+It happens in two phases:
+
+Repartitioning on both tables will happen based on the joining keys using hash partitioning, providing 200 partitions (as per the default shuffle partitions config; default value is 200).
+A hash table is created for the lookup activity, and the join happens based on that.
+
+Currently, most of the Spark systems have made Sort Merge Join their default choice over Shuffle Hash Join because of its consistently better performance compared to Shuffle Hash Joins. For this example, if you want to test the Shuffle Hash Join, use the following command to turn off the automatic Sort Merge Joins.
+
+spark.conf.set("spark.sql.join.preferSortMergeJoin","false")
+If you are aware that the data is distributed uniformly over partitions without any skewness, you can consider this join over Sort Merge Join.
+
+Tips to make this join happen:
+
+It should be an Equi-join.
+Hint it as a Shuffle join for one of the sides.
+
+# Way to mention hint for Shuffle Join
+
+DF1.join(DF2.hint("shuffle_hash"),DF1.joinkey == DF2.joinkey,"inner")
+
+
+
+---------------------------------------------------------------------------------
+
+
+Shuffle Sort Merge Join
+This is more preferable over Shuffle Hash Join, considering its consistency over different cases. These joins happen in three stages:
+
+Repartitioning on both tables will happen based on the joining keys using hash partitioning, providing 200 partitions (as per the default shuffle partitions config; default value is 200).
+Sorting of data happens on each partition individually.
+As a last step, merging happens based on the joining key.
+
+Tips to make this join happen:
+
+It should be an Equi-join.
+Hint it as a Merge join for one of the sides.
+
+
+# Sample data
+df1 = spark.createDataFrame(
+    [(1, "A"), (2, "B"), (3, "C")],
+    ["id", "val1"]
+)
+
+df2 = spark.createDataFrame(
+    [(1, "X"), (2, "Y"), (4, "Z")],
+    ["id", "val2"]
+)
+
+# Normal join (triggers shuffle sort merge join if both are large)
+smj = df1.join(df2, "id", "inner")
+smj.explain()
+
+------------------------------------------------------------------------
+
+Cartesian Join
+A Cartesian Join results in each record from one table being joined with every row in the other table. This is a costly join and can lead to out-of-memory (OOM) issues when there is insufficient space to execute the join.
+
+Tips to make this join happen:
+
+It should be a Non-Equi join.
+Joining condition is not necessary when you specify a cross join.
+
+----------------------------------------------------------------------------
+
+Broadcast Nested Loop Join
+In a Broadcast Nested Loop Join, we typically have one large table, often a fact table, and a smaller dimension table. Each dimension in the smaller table relates to all the fact records. This dimension data is broadcasted to all the executors handling portions of the fact data.
+
+Tips to make this join happen:
+
+It should be a Non-Equi join.
+Joining condition is not necessary when you specify a cross join.
+The small table can be broadcastable.
+
+bnlj = df1.join(broadcast(df2), df1.id > df2.id, "inner")
+bnlj.explain()
