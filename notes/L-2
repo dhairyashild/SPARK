@@ -1,0 +1,349 @@
+What is SparkContext?
+    `SparkContext` is the original entry point for Spark functionality. It’s responsible for connecting to the Spark cluster, loading data, and interacting with Spark’s core functionalities.
+    It introduced in Spark 1.x.
+
+Why use SparkContext?
+    1. Low-level Operations: Provides access to low-level operations and configurations.
+    2. RDD Manipulation: Essential for working directly with Resilient Distributed Datasets (RDDs).
+
+Common Challenges with SparkContext
+    Context Management
+    Concurrency and Resource Allocation
+        In multi-user or multi-application scenarios, conflicts can arise when multiple users or applications attempt to utilize the same SparkContext.This can result in resource contention and suboptimal performance. 
+
+How to create SparkContext?
+    from pyspark import SparkContext, SparkConf
+    conf = SparkConf(key,value).setAppName(“example_spark_context”)
+    sc = SparkContext(conf=conf)
+
+What is SparkSession?
+    `SparkSession` is the entry point to programming with Spark. It provides a single point of entry to interact with Spark functionality and to create DataFrame and DataSet.
+    It introduced in Spark 2.0.
+    Spark Session is a combination of all these different contexts 
+        SparkContext (for RDDs)
+        SQLContext (for Spark SQL)
+        HiveContext (for Hive support)
+    Also we get the benifits of Catalyst Optimizer.This optimizer analyzes the structure of the DataFrame operations and generates an optimized query plan, resulting in faster and more efficient data processing. The Catalyst Optimizer is particularly beneficial for Spark SQL queries, enabling automatic optimizations such as predicate pushdown, column pruning, and join reordering.
+    Better Support For Concurrency and Resource Allocation.In multi-user or multi-application scenarios,Spark Session handles the isolation and resource management more effectively. It provides better support for managing resources, optimizing query execution, and improving overall performance. 
+
+Why use SparkSession?
+    1. Unified Interface: It combines the old `SQLContext`, `HiveContext`, and `SparkContext` into a single point of entry.
+    2. Ease of Use: Simplifies the process of starting and configuring a Spark application.
+    3. Better Optimaation Support.( Catalyst Optimizer )
+
+How to create SparkSession?
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder \
+                .appName(“example_spark_session”) \
+                .conf(key,value)
+                .getOrCreate()
+
+# Create SparkSession with Hive support
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder \
+        .appName("HiveExample") \
+        .config("spark.sql.warehouse.dir", "/user/hive/warehouse") \
+        .config("spark.executor.instances",3)
+        .config("spark.driver.cores",2)
+        .config("spark.executor.cores",3)
+        .config("spark.executor.memory",4G)
+        .enableHiveSupport() \
+        .getOrCreate()
+
+    spark.sql("show databases").show()
+
+
+=================================================================================================================
+
+RDD
+when we are deal with rdd. we deal with low level code.
+These low level code is not developer-friendly.
+rdd is lack some of the basic optimazation.
+
+DATAFRAME
+spark version 1.3
+Higher level constructs which make the developer life easy.
+challenges :-
+    1. dataframe do not offer  strongly typed code.
+    type error won't be caught at compile time rather we get suprise at runtime.
+
+    2. developer felt that there flexibility has become limited.. (we cann't write lambda function in dataframe)
+
+    3. whenever we want more flexibility and type safety  we have to convert dataframe into rdd. (df.rdd). But these conversion from df to rdd is not seamless.
+       if we work with raw rdd by converting dataframe to rdd. we will miss out on some of the major optimazations.
+
+    catalyst optimizer and tungstone engine are not for rdd so we miss these optimazaion by converting it into rdd
+
+DATASET
+
+    To overcome the dataframe chanllenges dataset developed.
+    spark version 1.6
+    it provide compile time safty. (strongly typed)
+    we get more flexibility in terms of using low level code.
+    conversion of dataset to rdd is seamless.
+    we won't loss any optimazation. (catalyst optimizer and tungstone engine)
+
+Before spark2 both dataframe and dataset are 2 different things..
+In spark2 they merged these 2 into a single unified spark dataset API ( structred API)
+
+
+
+whenever we are woking with dataframe or dataset we are dealinng with highe level programming constructs.
+when we are working with raw rdd that was a low level code.
+
+spark compailer will convert your high level code (dataframe or dataset) to low level rdd code.
+driver will convert your high level code in low level rdd code and then it will send the low level code to executors.
+
+when we are dealing with rdd the code directly goes on executor and run.
+when we are dealing with dataframe or dataset our high level code run on driver and driver do the rest i.e conversion of high level code to low level and send it to the executor.
+
+===============================================================================================================
+Normal Flow Of Spark Application
+
+1. Read the data from a Data Source and create a dataframe/datasets.
+        - external data source (mysql database,readshift,mongodb)
+        - internal data source (hdfs ,s3,azure blob, google storage)
+
+so we have the flexibility in spark to create a dataframe directly from an external data source.
+spark gives you a jdbc connector to ingest the data from mysql databases
+
+2. performing a bunch of transformations and actions.
+    transformation/action using higher level construct
+
+3. writing the data to the target(Sink)
+    internal/external
+
+===============================================================================================================
+
+Spark Config :-
+https://spark.apache.org/docs/latest/configuration.html
+
+===============================================================================================================
+
+Reading CSV File :-
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder \
+                .appName(“example_spark_session”) \
+                .getOrCreate()
+
+    df = (
+    spark.read
+        .option("header", "true")
+        .option("inferSchema", "true")
+        .option("sep", "|") 
+        .option("mode", "DROPMALFORMED")
+        .csv("hdfs://path/to/file.csv")
+        )
+
+  df.show()-->20
+  df.collect()
+
+InferSchema has to read first 100 records to impose schema for each column.That why it is action.It will 1st convert it from bytes(serilized) to object form (deserilized)
+and then read it and impose it.
+
+Note :- 
+    Inferschema is not used in production environment.
+    In inferschema it will read first N records (consider 100 ) and based on that it impose the schema but after that if schema is changed (after 100 record) then it will through error.
+
+
+There are Three Modes reading modes 
+    1. PERMISSIVE (default mode) :- It set all the fileds to NULL when it encountered a corrupted records. 
+                                    It will create new column _corrupt_record and drop corrupted records in it.
+    2. DROPMALFORMED             :- Will ignore the malformed record.
+    3. FAILFAST                  :- Whenever malformed encountered it through as exception.
+
+
+
+Reading PARQUE File :-
+            In these we don't need to define the schema.schema comes with file.
+        df = (
+            spark.read
+        .option("mergeSchema", "true")              # merge schema evolution
+        .option("recursiveFileLookup", "true")      # read all subdirectories
+        .parquet("hdfs://path/to/parquet_dir")
+                )
+
+Reading From JDBC Connection
+    jdbc_url = "jdbc:mysql://localhost:3306/mydb"
+    table_name = "employee"
+    properties = {
+        "user": "root",
+        "password": "mypassword",
+        "driver": "com.mysql.cj.jdbc.Driver"
+    }  
+
+
+    # Read data from MySQL
+    df_mysql = spark.read.jdbc(url=jdbc_url, table=table_name, properties=properties)
+    df_mysql.show()
+
+options to have spark dataframe :- 
+    1. INFER  ( inferschema option )
+    2. IMPLICIT ( parque , avro )
+    3. EXPLICIT ( manually defining schema )
+
+
+EXPLICIT Schema :
+    1. Programatically 
+    2. DDL
+
+Programatically Approach:-
+    StructType valid for each row.
+    StructField valid for each column.
+    Here we have to spark datatypes.
+    
+        from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+
+        # Define schema
+        schema = StructType([
+            StructField("id", IntegerType(), True),      
+            StructField("name", StringType(), True),
+            StructField("age", IntegerType(), True),
+            StructField("salary", DoubleType(), True)
+        ])
+
+        # Apply schema while reading CSV
+        df = spark.read.schema(schema).csv("hdfs://path/to/file.csv", header=True)
+
+        df.printSchema()
+        df.show()
+
+    The thrid parameter is optional.
+    It represet nullable.
+    If it true it takes null value and if false it will not take null value and give error.
+
+
+datatype :
+       Scala          Spark
+       int          IntegerType
+       Long         LongType
+       date         DateType
+       float        FloatType
+       double       DoubleType
+       TimeStamp    TimeStampType
+
+
+DDL string Approach :-
+    Here we are giving scala data types.
+
+Ex.
+    schema = "id INT, name STRING, age INT, salary DOUBLE"
+    df = spark.read.schema(schema).csv("hdfs://path/to/file.csv", header=True)
+    df.printSchema()
+    df.show()
+
+
+===============================================================================================================
+
+
+How to write dataframe in sink
+
+Basic Format
+df.write.format("csv").mode("overwrite").option("maxRecordsPerFile", 10000).option("key", "value").save("path")
+
+Shortcut
+    df.write.csv("path")
+    df.write.json("path")
+    df.write.parquet("path")
+    df.write.orc("path")
+
+
+Write Modes
+    Controls what happens if the output path already exists.
+        "overwrite" → Replace existing data
+        "append" → Add to existing data
+        "ignore" → Skip write if path exists
+        "error" or "errorifexists" (default) → Fail if path exists
+
+
+
+Normally when we are writing a dataframe to our target  then we have few option to control the file layout.
+spark file layout
+    1. repartitions (Increase Partition)
+    2. Coalesce (Reduce Partitions)
+    3. partitioning and bucketing
+    4. sortBy (sorted data)
+    5. maxRecordsPerFile
+
+Note :- Number of output files is equal to the number of partitions in your dataframe.
+
+
+repartition
+==========
+    1. It can help to increase the parallelism
+
+df.repartition(10).write.mode("overwrite").parquet("output/parquet")
+
+
+Coalesce
+=========
+        1. It can help to reduce the no of files.
+df.coalesce(1).write.mode("overwrite").csv("output/single_file", header=True)
+
+
+partitionBy
+===========
+    1. It is equal to partitioning in hive.
+    2. It provide partition Purning.
+df.write.partitionBy("year", "month").parquet("path/output")
+
+
+year=2025
+    month=01
+      .parquet
+      .parquet    
+      .parquet
+      .parquet
+    month=02
+      .parquet
+      .parquet
+      .parquet
+      .parquet
+
+
+
+Bucketing  & Sorting (requires Hive support)
+===============================================
+    df.write.partitionBy("year", "month").bucketBy(4, "id").sortBy("name").saveAsTable("bucketed_table")
+
+year=2025
+    month=01
+      .parquet
+      .parquet    
+      .parquet
+      .parquet
+    month=02
+      .parquet
+      .parquet
+      .parquet
+      .parquet
+
+
+usr/hive/warehouse/bucketed_table/4
+
+    df.repartition(10).write.format('parquet').mode("overwrite").save("output/parquet")
+    df.repartition(10).write.format('parquet').mode("overwrite").saveAsTable("output/parquet")
+
+
+maxRecordsPerFile
+=================
+    1. It will help to control how many records per file contain.
+
+df.write \
+  .option("maxRecordsPerFile", 10000) \
+  .parquet("output/path")
+
+===============================================================================================
+
+Assignment:-
+    create rdd from dummy data.
+    create dataframe from dummy data.
+    create dataframe from rdd.
+    Apply filter more than 2 columns.
+    add column in exiting dataframe
+    dropDuplicates, distinct, groupBy
+    Casting int->str, int->double, change the dateformat
+    differnt string function
+    different array function
+    read dataframe 
+    write dataframe
