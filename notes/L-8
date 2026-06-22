@@ -1,0 +1,293 @@
+One of the most fundamental decisions to make when you are architecting a solution on Hadoop/cloud is determining how data will be stored in Hadoop.
+
+Major considerations for Hadoop data storage include:
+	1. File Format
+	2. Commpression techniques
+
+
+why we need different file formats?
+	we want to save storage
+	we want fast processing
+	we want less time for our I/O operations.
+
+As the data increases, the cost for storage and processing increases too.
+
+The various Hadoop file formats have evolved as a way to ease these issues across a number of use cases.
+
+
+There are lot of choices available on file formats.
+	1. Faster read
+	2. Faster write
+	3. splittable ( In big data solutions we consider only splittable file formats )
+	4. Schema evolution support
+	5. Advanced compression 
+	6. Most compatible platformat. ( like spark,hive)
+
+All the file formats are divided into 2 broad category.
+	1. Row based file format.
+		The whole row (all columns) of data from the disk has to be read in memory even if you need only a few columns. Row-oriented storage is suitable for situations where the entire row of data needs to be processed simultaneously.
+		Writing is fast.
+		Reading is slow for subset of columns.
+		Less compression.
+		Ex. 1 vishvjit Data-Enginner, 2 jivan Angular, 3 pranali Pl/Sql, 4 sanchit data-Enginner
+
+
+	2. column based file format.
+		The entire file is divided in several columns of data, and each column of data stored together
+		The column-oriented format makes it possible to skip unneeded columns when reading data, suitable for situations where only a small portion of the rows are needed.
+		Reading is fast.
+		Writting is slow.
+		Better Compression.
+		Ex.  1 2 3 4 , vishvjit jivan pranali sanchit, data-Enginner angular Pl/Sql data-enginner
+
+
+	3. Text File Format
+		CSV - Raw file
+			Data is stored in a human readble from.
+			Everything is stored in a text from.
+			ex. Interger value is also stored as text.
+		Consume more storage.
+		processing text file is very slow.
+		IO operation will also take lot of time.
+				Ex. conversion of string to interger. '444424' --> 444424 I/O operation takes lots of time.
+		Human readable.
+
+
+	XML & JSON
+	==========
+		Disadvantage of XML & JSON
+		These are human readable.
+		These takes lots of size due to everthing stored as string.
+		processing on text file can be very very slow. Ex. conversion of string to interger. '444424' --> 444424
+		I/O operation takes lots of time.
+		These files are not spittable.
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+Specilize File Format
+	There are several Hadoop-specific file formats that were specifically created to work well with Big Data Technologies. 
+	These Hadoop-specific file formats include serialization formats like Avro and columnar formats such as Orc and Parquet.
+	These file formats have differing strengths and weaknesses, but all share the following characteristics that are important for Hadoop applications:
+
+	Splittable 
+		The ability to split a file for processing by multiple tasks is of course a fundamental part of parallel processing, and is also key to leveraging Hadoop’s data locality feature.
+
+	Agnostic compression 
+		The file can be compressed with any compression codec, without readers having to know the codec. This is possible because the codec is stored in the header metadata of the file format.Commpression codec( code of compression ) is kept in metadata of this file.	so whenever the reader wants to read he gets to know this compression codec from metadata and can easily understand  this data.
+
+
+
+==============================================================================================
+
+Avro File format.
+1. Row based file format.
+2. Faster write.
+3. slower read. ( while reading subset of column)
+4. It is genric  file format. Many language support Avro file format like C,python,C++,java
+5. Schema-Evalution :- we can modified schema of avro file.
+6. It is splittable.
+7. It is Serilized file format.
+8. Data and schema are kept togather. schema is stored in header. No need to store in external db.
+The schema for Avro file is stored in  JSON form.
+This data  is self describing  because  the schema(metadata) is embedded as part of your  data itself.
+And actual data is stored in binary format.which is efficent in term of storage.
+
+Schema Evolution :- Avro is quite matured in terms of schema evolution. There is no other file format better than avro in terms of schema evolution.
+			adding new column, removing old column , renaming columns.
+When to use Avro :- 
+	Avro can be best fit for  storing data  in the landing zone of datalake(hdfs).
+	while ETL process we can use it.Becasue we read all the data.
+
+
+Serilization :- convertng the data into the form which can be easily  transfered over the network and stored  in file format.
+
+
+===============================================================================================================================
+
+ORC File Format (Optimized  columnar) :- 
+
+1. column  base file format
+2. write are slow.(not efficent)
+3. Reads are fast.
+4. In terms of storage it is higly efficient. Because it usese below techinque.
+	lightweight compression :- Dictornary encoding,bit packing,delta encoding,run length encoding along with generalized 
+	compression techniques like snappy,gzip,lzo.
+	
+	Dictornary encoding 
+		Supported datatypes STRING, VARCHAR, CHAR  
+		Ex.
+			["Apple", "Banana", "Banana", "Apple", "Cherry"]
+			0 → "Apple"
+			1 → "Banana"
+			2 → "Cherry"
+	Encode the column as: [0, 1, 1, 0, 2]
+	These values are stored in two streams:
+		A dictionary stream: stores the actual strings.	
+		A data stream: stores the integer indices.
+				
+ 
+	bit packing :-  Bit packing is a compression technique that stores integers using only the minimum number of bits required.
+	Ex.
+	 [1, 2, 3, 4] → Max is 4 → Needs only 3 bits (since 2³ = 8)
+	 Instead of using 32 bits per integer, we store each in 3 bits, saving space.
+
+	 Normally, in most systems, integers are stored using 32 bits (4 bytes), even if the number is small.
+	 [1, 2, 3, 4] = 4 numbers × 32 bits = 128 bits
+	 With Bit Packing
+	 	Now, if we use only 3 bits per value, we get: 4 numbers × 3 bits = 12 bits
+	 	That’s a 91% reduction in space!
+		| Value | Binary (3 bits) |
+		| ----- | --------------- |
+		| 1     | 001             |
+		| 2     | 010             |
+		| 3     | 011             |
+		| 4     | 100             |
+
+	Packed together in memory:
+		001010011100 (12 bits total)
+
+	delta encoding :-
+		Delta encoding is a compression technique where you store the difference (delta) between consecutive values, instead of the values themselves.
+		Original Data: [100, 102, 105, 106]
+		Delta Encoded: [100, 2, 3, 1]
+		First value (100) is stored as-is.
+		Then:
+			102 − 100 = 2
+			105 − 102 = 3
+			106 − 105 = 1
+
+	run length encoding :-
+		Run-Length Encoding (RLE) is a simple compression technique that replaces repeated values in a sequence with a single value and a count of how many times it occurs.
+		instead of storing: ["A", "A", "A", "B", "B", "C"]
+		You store: [("A", 3), ("B", 2), ("C", 1)]
+
+
+5. ORc file format offers predicate pushdown.
+6. It is best fit fot hive. (specially designed for hive)
+7. ORC support all the datatype with complex datatype of hive.
+8. Schema-evaulation -  It support schema evalution , but is not matured like AVRO.
+			Metadata of orc is stored as protocol buffers.which allow addition and removal of fields.
+9. It is splittable.
+
+
+Structure of ORC file
+========================
+1. Header
+2. Body --> Stripes-->row group
+3. Tail
+
+1. Header :-
+		"ORC" is wrriten in these to know it is ORC file.
+
+2. Body :- Body is made of stripes of data. These stripes further divied into block of records by default there are 10000 rows are there  in each  block(row group)
+	   Default size of stripes is 250mb
+	   stripes are further divied into row grop.Each row group holds 10000 rows by default.
+	   ex. if you have 500mb orc file then there is 2 stripes of 250mb each.
+		and if in each stripe of 250mb if there are 1 lakh records.Then these will divide into 10 row group each row group has 10000 records.
+		1 orc file
+		2 stripe in body of file
+		each strip has 10 row group
+
+	   Stripe structure 
+	===========================
+	1. set of index :- max & min & count for each column in every row group  in the stripe
+			   Ex.   stripe 1: rowgroup 1: empid min 102 max 300
+				 stripe 1: rowgroup 2: empid min 700 max 900
+
+		Indexes are at 3 level:-
+			1. File level  (Min and Max for entire file)
+					statistics about the values in each column across the entire file
+			2. stripe level (Min and Max for each stripe)
+				- statistics about the values in each column for each stripe
+			3. row level
+				statistics about the values in each column for each set of 10,000 rows within a stripe.
+		Note :- File level and stripe level index is stored in file footer.And row level is kept in index data of stripes.
+	2. the data itselt broken into row group
+	3. stripe footer :- It holds encodeing information
+
+3. Tail
+     It consist of 2 parts :-
+	1. file footer :- 
+			It contain meta data at file level.( meta data of whole orc file )
+			Also it contain stripe level min and max.
+			File level and stripe level index is stored in file footer.
+	2. postscript:-
+			It store which type of encodeing is used.
+			It not in compressed  form.
+			It helps to understand remaing part of file.
+
+The file and stripe level column statistics are in the file footer so that they are easy to access to determine if the rest of the file needs to be read at all. 
+Row level indexes include both the column statistics for each row group and the position for seeking to the start of the row group. 
+The process of reading an ORC file works backwards through the file. The ORC reader reads the last 16k bytes of the file with the hope that it will contain both the Footer and Postscript sections.
+A drawback of ORC was that it was designed specifically for Hive, and was not a general-purpose storage format that can be used with non-Hive MapReduce interfaces such as Java. However now lot of these shortcomings are covered now.
+
+How  orc file is read internally?
+step 1: It check header  is there "ORC" written.
+step 2: If ORC in header then go to postscript where encoding info is stored. 
+	   Based on encoding decrypt(un-encode/uncompress) the file footer.
+step 3: read the file footer and get to know what is stored in which stripe and go to that stripe. 
+
+
+================================================================================================
+Key Takeaways from orc file format is
+	1. column based
+	2. The data is store in a very strorage efficent way. Because of lot of encodings.
+	3. Very well suited with Hive.
+	4. The predicates ( filter conditions ) are pushed at the storage level so we have to read less.
+	5. Schema Evolution its kind of okay. ( protocol buffers only )
+
+=====================================================================================================================
+
+
+Parquet File format 
+
+1. columnar file format
+2. read fast
+3. write slow
+4. It very good for handling nested data.
+5. parquet shares many design goals  with orc.
+6. It is more general purpose than orc and like avro
+7. compression is effienct because of varirous encoding and compression  like orc but not that much.
+8. It store meta data at end of the file so it is called as self describring.
+9. It support schema evalution to some extend.adding and deleting column only from end.
+10. Splittable
+
+
+structure
+1. header:
+	it contain text "par1"
+2. Row group
+	column chunk --> pages
+	each column chunk is configurable.
+3. Tail :
+	It consist of 3 part:-
+		a. file meta
+		b. Footer - length of file metadata
+		c. magic number "par1"
+
+
+Key Takeaway
+
+	1. Generic file format & column based
+	2. Faster read  slower write
+	3. It is quite general
+	4. the compression is efficient
+	5. support schema evolution to some extened.
+	6. based suited for nested struture.
+	7. Spittable. 
+
+
+
+A generic column-oriented storage format based on Google’s Dremel. Especially good at handling deeply nested data. 
+Parquet shares many of the same design goals as ORC, but is intended to be a general-purpose storage format for Hadoop. 
+Similar to ORC files, Parquet allows for returning only required data fields, thereby reducing I/O and increasing performance. Provides efficient compression. 
+Stores full metadata at the end of files, so Parquet files are self-documenting. 
+Uses efficient and extensible encoding schemas—for example, bit-packaging/run length encoding (RLE)
+It is more efficient when you need to query a few columns from a table. It will read only the required columns since they are adjacent thus minimizing IO. 
+It handles nested data structures in a flat columnar format. This means that in a Parquet file format, even the nested fields can be read individually without the need to read all the fields in the nested structure. 
+To understand the Parquet file format in Hadoop you should be aware of the following termsRow group: A logical horizontal partitioning of the data into rows. A row group consists of a column chunk for each column in the dataset.
+
+
+------------------------------------------------------------------------------------------
+
