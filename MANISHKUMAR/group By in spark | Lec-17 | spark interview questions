@@ -1,0 +1,62 @@
+# GROUP BY - Quick Notes for Data Engineers
+
+## What it Does
+- Groups data by one or more columns
+- Applies aggregations (SUM, COUNT, AVG, MIN, MAX) on each group
+- **Reduces rows** (1 row per group)
+
+## How it Works (Behind the Scenes)
+1. Find all **distinct values** in GROUP BY columns
+2. Create **separate groups** for each unique combination
+3. Apply **aggregation** on each group
+4. Return **1 row per group**
+
+## When to Use
+| Scenario | Code | Output |
+| :--- | :--- | :--- |
+| Total salary (whole company) | `df.select(sum("salary"))` | 1 row |
+| Salary per department | `df.groupBy("dept").agg(sum("salary"))` | 1 row/dept |
+| Salary per dept + country | `df.groupBy("dept","country").agg(sum("salary"))` | 1 row/pair |
+
+## Critical Rule
+- `GROUP BY` = **Row count DECREASES**
+- Returns **ONLY grouping columns + aggregated columns**
+- Original row details (names, IDs) are **LOST**
+
+## GROUP BY vs Window Functions
+| Aspect | GROUP BY | Window Functions |
+| :--- | :--- | :--- |
+| Row Count | **Reduces** rows | **Preserves** all rows |
+| Output | Only group + agg columns | Original columns + new agg column |
+| Use When | Need summary reports | Need detail + summary together |
+| Example | Total sales per region | Each sale + region total in same row |
+
+## When to Use Window Functions Instead
+- Need to show **employee name + department total salary** in same row
+- Need to calculate **percentage of department salary** per employee
+- Need to **rank** items within groups
+- Need running totals or moving averages
+
+## Performance Tips
+- Filter (`WHERE`) **BEFORE** GROUP BY to reduce shuffle
+- Avoid GROUP BY on **high-cardinality** columns (too many groups = slow)
+- Use **partitioning** to optimize large GROUP BY operations
+- Consider **bucket by** columns for frequent GROUP BY queries
+
+## Common Interview Questions
+1. Difference between GROUP BY and DISTINCT?
+2. When to use GROUP BY vs Window Function?
+3. What is data shuffling and how GROUP BY causes it?
+4. How to optimize slow GROUP BY queries?
+
+## Spark Optimization Techniques
+- **Salting:** Add random key to handle data skew
+- **Broadcast Join:** For small dimension tables
+- **Auto Broadcast Threshold:** Configure spark.sql.autoBroadcastJoinThreshold
+- **Partition Size:** Keep partitions between 100-200 MB for optimal performance
+
+## Code Examples (PySpark)
+
+### 1. Single Column Group
+```python
+df.groupBy("department").agg(sum("salary").alias("total_salary")).show()
