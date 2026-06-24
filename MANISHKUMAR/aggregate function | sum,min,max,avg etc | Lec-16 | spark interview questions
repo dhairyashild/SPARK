@@ -1,0 +1,38 @@
+# 📘 AGGREGATION FUNCTIONS IN PYSPARK – SHORT NOTES (5+ YOE)
+
+---
+
+## 1. AGGREGATION = SUMMARIZING DATA
+- Combine multiple values into one (count, sum, min, max, avg).
+- Used for reporting, dashboards, and data quality checks.
+
+---
+
+## 2. COUNT BEHAVIOR (IMPORTANT)
+| Code | Output | Why |
+|------|--------|-----|
+| `df.count()` | All rows | Counts NULLs too |
+| `df.select("col").count()` | Non-NULL rows | Skips NULLs |
+| `df.select("*").count()` | All rows | Counts NULLs too |
+
+---
+
+## 3. COUNT – ACTION vs TRANSFORMATION
+| Code | Type |
+|------|------|
+| `df.count()` | Action |
+| `df.select(count("col"))` | Transformation (lazy) |
+
+---
+
+## 4. ALL AGGREGATIONS IN ONE GO
+```python
+from pyspark.sql.functions import sum, max, min, avg, count
+
+df.select(
+    sum("salary").alias("total_salary"),
+    max("salary").alias("max_salary"),
+    min("salary").alias("min_salary"),
+    avg("salary").alias("avg_salary"),
+    count("salary").alias("count_salary")
+).show()
