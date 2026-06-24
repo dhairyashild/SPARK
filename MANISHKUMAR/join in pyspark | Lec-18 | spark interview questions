@@ -1,0 +1,76 @@
+# JOIN - Quick Notes (Data Engineer 5yr+)
+
+## Core Concept
+- JOIN = दोन tables common column वर merge करतो
+- **Expensive operation** → nodes दरम्यान **data shuffle** होतो
+- Rule: **Filter BEFORE JOIN** → shuffle कमी = fast query
+
+---
+
+## JOIN Types (Cheat Sheet)
+
+| Type        | Output                              | Use Case                        |
+|-------------|-------------------------------------|---------------------------------|
+| INNER       | फक्त matching rows (दोन्हीकडे)     | Exact match हवे                 |
+| LEFT        | सर्व left + matching right          | Master table सर्व rows हवे     |
+| RIGHT       | सर्व right + matching left          | (क्वचित वापरतात, LEFT prefer)  |
+| FULL OUTER  | दोन्हींचे सर्व rows                 | Data reconciliation             |
+| LEFT SEMI   | Left rows जे match करतात (right columns नाही) | EXISTS check       |
+| LEFT ANTI   | Left rows जे match करत **नाहीत**   | Missing/Unmatched records       |
+| CROSS       | Cartesian product (n×m rows)        | ⚠️ टाळा - खूप महाग             |
+
+---
+
+## Data Explosion (Critical!)
+- Non-unique keys → duplicate rows explode
+- Left: 3 rows (id=1) × Right: 3 rows (id=1) = **9 rows output**
+- **Fix:** JOIN नंतर `distinct()` किंवा आधीच deduplicate करा
+- **Always verify:** दोन्ही sides च्या join keys unique आहेत का?
+
+---
+
+## PySpark Code Patterns
+
+```python
+# Basic
+df1.join(df2, "common_col", "inner")
+
+# Multi-column
+df1.join(df2, (df1.col1 == df2.col1) & (df1.col2 == df2.col2), "left")
+
+# Alias (ambiguous column fix)
+df1.alias("a").join(df2.alias("b"), col("a.id") == col("b.id")) \
+   .select("a.id", "b.name")
+
+# OPTIMIZED - Filter BEFORE join
+df1.filter("status = 'active'").join(df2, "id", "inner")
+
+# Left Anti (missing records)
+customers.join(orders, "customer_id", "leftanti").show()
+```
+
+---
+
+## Spark Optimization (Senior-level)
+
+| Technique          | कधी वापरावे?                         | How                                      |
+|--------------------|---------------------------------------|------------------------------------------|
+| **Broadcast Join** | एक table < 10MB (छोटा)               | `broadcast(small_df)` or auto-threshold  |
+| **Salting**        | Data Skew (एक key वर खूप data)       | Random salt key add करा + double join    |
+| **Predicate Pushdown** | Source level filter               | Filter before read (Parquet/Delta)       |
+| **Partition Pruning**  | Partitioned tables                | WHERE on partition column                |
+| **Shuffle Partitions** | Default 200 (tune it)            | `spark.sql.shuffle.partitions = 400`     |
+
+---
+
+## Common Pitfalls
+
+1. **Ambiguous columns** → Always use `.alias()`
+2. **INNER when LEFT needed** → Missing rows silently drop होतात
+3. **JOIN before filter** → Unnecessary shuffle → slow
+4. **Skewed keys** → One executor overloaded → Use salting
+5. **Null keys** → NULL == NULL is FALSE in JOIN → handle with `coalesce`
+
+---
+
+## Decision Tree (Quick)
